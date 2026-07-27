@@ -2,3 +2,5 @@ db_data/
 *.log
 .env
 .DS_Store
+
+*.tar.gz
