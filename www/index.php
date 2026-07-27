@@ -4,6 +4,27 @@ controlla_autenticazione();
 include 'db.php';
 date_default_timezone_set('Europe/Rome');
 
+/*
+|--------------------------------------------------------------------------
+| TODO - Dashboard Budget v2
+|--------------------------------------------------------------------------
+|
+| La dashboard sarà completamente riprogettata mantenendo inizialmente
+| la compatibilità con il codice esistente.
+|
+| Obiettivi:
+| 1. Rendere il budget giornaliero il dato principale.
+| 2. Nascondere il saldo del Salvadanaio.
+| 3. Considerare sempre le spese fisse come impegnate.
+| 4. Ricalcolare automaticamente il budget giornaliero dopo ogni movimento.
+| 5. Ridurre l'inserimento di una spesa a meno di 10 secondi.
+|
+| Prima di modificare la logica verranno introdotte piccole patch,
+| ciascuna verificata singolarmente.
+|
+*/
+
+
 // 1. Capire quale mese mostrare (di default quello attuale, o quello scelto dall'utente)
 $mese_corrente = date('F');
 $anno_corrente = date('Y');
