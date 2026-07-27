@@ -1,9 +1,9 @@
 <?php
 // Credenziali di accesso all'applicazione
-define('USER_APP', 'lorenzo');
+define('USER_APP', getenv('APP_USER'));
 
 // Metti qui la tua password personalizzata al posto di 'ilmiobudget'
-define('PASS_APP', 'Summer77@'); 
+define('PASS_APP', getenv('APP_PASSWORD'));
 
 // Funzione di controllo per proteggere le pagine
 function controlla_autenticazione() {
