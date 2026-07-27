@@ -4,10 +4,10 @@ services:
     container_name: budget-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root_password_super_segreta_2026
-      MYSQL_DATABASE: budget_db
-      MYSQL_USER: lorenzo
-      MYSQL_PASSWORD: budget_password_2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     ports:
