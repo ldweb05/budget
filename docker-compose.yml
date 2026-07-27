@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mariadb:latest
+    container_name: budget-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_super_segreta_2026
+      MYSQL_DATABASE: budget_db
+      MYSQL_USER: lorenzo
+      MYSQL_PASSWORD: budget_password_2026
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    image: php:8.1-apache
+    container_name: budget-web
+    restart: always
+    ports:
+      - "8085:80"
+    volumes:
+      - ./www:/var/www/html
+    depends_on:
+      - db
+    command: sh -c "docker-php-ext-install mysqli && apache2-foreground"
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: budget-pma
+    restart: always
+    ports:
+      - "8083:80"
+    environment:
+      - PMA_HOST=db
+      - ARBITRARY=1
+    depends_on:
+      - db
+
+volumes:
+  db_data:

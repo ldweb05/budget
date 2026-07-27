@@ -1,0 +1,59 @@
+<?php
+include 'config.php';
+session_start();
+
+$errore = '';
+
+if (isset($_POST['login'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    if ($username === USER_APP && $password === PASS_APP) {
+        $_SESSION['loggato'] = true;
+        header("Location: index.php");
+        exit;
+    } else {
+        $errore = 'Credenziali errate! Riprova.';
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Budget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans flex items-center justify-center min-h-screen px-4">
+
+    <div class="max-w-md w-full bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+        <div class="text-center mb-6">
+            <div class="text-4xl mb-2">🔵</div>
+            <h1 class="text-xl font-bold text-gray-700 tracking-wide">ACCESSO AL BUDGET</h1>
+            <p class="text-xs text-gray-400">Inserisci le credenziali per continuare</p>
+        </div>
+
+        <?php if (!empty($errore)): ?>
+            <div class="bg-red-50 text-red-600 text-xs p-3 rounded-xl mb-4 font-semibold border border-red-100 text-center">
+                <?php echo $errore; ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Utente</label>
+                <input type="text" name="username" required class="w-full px-3 py-2.5 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
+                <input type="password" name="password" required class="w-full px-3 py-2.5 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" name="login" class="w-full bg-[#12A0D7] text-white font-semibold py-3 rounded-xl text-sm shadow-sm hover:opacity-95 transition mt-2">
+                Accedi
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>
