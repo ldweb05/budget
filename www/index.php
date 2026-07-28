@@ -259,7 +259,7 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                         <?php echo ($giorni_rimasti > 1) ? "Oggi puoi spendere massimo" : "Avanzo finale del mese"; ?>
                     </h2>
-                    <div class="text-4xl font-extrabold <?php echo $budget_giornaliero >= 0 ? 'text-green-600' : 'text-red-600'; ?> mb-2">
+                    <div class="text-6xl font-extrabold <?php echo $budget_giornaliero >= 0 ? 'text-green-600' : 'text-red-600'; ?> my-4">
                         <?php echo number_format($budget_giornaliero, 2, ',', '.'); ?> €
                     </div>
                     <p class="text-xs text-gray-500 leading-relaxed">
