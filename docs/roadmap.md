@@ -23,7 +23,7 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 ## Funzionalità principali
 
 - Percentuale configurabile per il Salvadanaio.
-- Salvadanaio nascosto dalla dashboard.
+- Pulsante Salvadanaio disponibile nella dashboard.
 - Budget giornaliero ricalcolato automaticamente.
 - Redistribuzione automatica degli avanzi.
 - Redistribuzione automatica degli sforamenti.
@@ -51,9 +51,15 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 
 # Versione 3.0
 
-## Gestione utente e interfaccia
+## Gestione utenti e autenticazione
 
-- Gestione password utente dalla dashboard.
+- Tabella `utenti` nel database.
+- Password memorizzate con `password_hash()`.
+- Autenticazione tramite `password_verify()`.
+- Ruoli `admin` e `user`.
+- Cambio password dell'utente autenticato.
+- Gestione utenti da parte dell'amministratore.
+- Eliminazione della dipendenza dal file `.env` per il login.
 - Possibilità di visualizzare/nascondere la password nella schermata di login.
 - Miglioramento responsive per utilizzo da smartphone e tablet.
 

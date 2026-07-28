@@ -95,8 +95,15 @@ Versione 2.3
 
 Prossimo intervento:
 
-- Gestione utente e interfaccia:
-  - gestione password utente dalla dashboard;
+- Gestione utenti e autenticazione tramite database:
+  - creare la tabella `utenti`;
+  - memorizzare esclusivamente password cifrate tramite `password_hash()`;
+  - verificare le credenziali tramite `password_verify()`;
+  - introdurre i ruoli `admin` e `user`;
+  - consentire all'utente di modificare la propria password;
+  - consentire all'amministratore di gestire utenti, ruoli e stato attivo;
+  - migrare l'autenticazione attuale dal file `.env` al database;
+  - rimuovere la modifica del file `.env` dalla dashboard;
   - visualizzazione/nascondi password nella schermata di login;
   - miglioramento responsive per smartphone e tablet.
 
@@ -106,7 +113,8 @@ Sono state completate le seguenti modifiche:
 - calcolo del Salvadanaio tramite percentuale configurata nel database;
 - calcolo del risparmio sull'entrata totale;
 - calcolo del budget disponibile dopo risparmio, spese fisse e spese variabili;
-- rimozione del collegamento al Salvadanaio dalla Dashboard;
+- ripristino del collegamento al Salvadanaio nella Dashboard;
+- aggiunta del form per il cambio password, temporaneamente basato sul file `.env`;
 - maggiore evidenza visiva del budget giornaliero;
 - semplificazione del riepilogo;
 - autofocus sul campo descrizione della spesa;
