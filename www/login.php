@@ -27,7 +27,8 @@ if (isset($_POST['login'])) {
         $_SESSION['username'] = $utente['username'];
         $_SESSION['ruolo'] = $utente['ruolo'];
 
-        header("Location: index.php");
+        $destinazione = $utente['ruolo'] === 'admin' ? 'admin.php' : 'index.php';
+        header("Location: " . $destinazione);
         exit;
     }
 
