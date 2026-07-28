@@ -1,20 +1,37 @@
 <?php
 include 'config.php';
+include 'db.php';
 session_start();
 
 $errore = '';
 
 if (isset($_POST['login'])) {
-    $username = $_POST['username'];
+    $username = trim($_POST['username']);
     $password = $_POST['password'];
 
-    if ($username === USER_APP && $password === PASS_APP) {
+    $stmt = $conn->prepare(
+        "SELECT id, username, password_hash, ruolo
+         FROM utenti
+         WHERE username = ? AND attivo = 1
+         LIMIT 1"
+    );
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $utente = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($utente && password_verify($password, $utente['password_hash'])) {
+        session_regenerate_id(true);
         $_SESSION['loggato'] = true;
+        $_SESSION['utente_id'] = (int) $utente['id'];
+        $_SESSION['username'] = $utente['username'];
+        $_SESSION['ruolo'] = $utente['ruolo'];
+
         header("Location: index.php");
         exit;
-    } else {
-        $errore = 'Credenziali errate! Riprova.';
     }
+
+    $errore = 'Credenziali errate! Riprova.';
 }
 ?>
 <!DOCTYPE html>

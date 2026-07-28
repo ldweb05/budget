@@ -204,11 +204,19 @@ if (isset($_GET['delete_variabile'])) {
 // Azione: Aggiorna Password Utente
 if (isset($_POST['update_password'])) {
     $nuova_password = trim($_POST['nuova_password']);
+    $utente_id = intval($_SESSION['utente_id'] ?? 0);
 
-    if (!empty($nuova_password)) {
-        $env = file_get_contents('../.env');
-        $env = preg_replace('/APP_PASSWORD=.*/', 'APP_PASSWORD=' . $nuova_password, $env);
-        file_put_contents('../.env', $env);
+    if (!empty($nuova_password) && $utente_id > 0) {
+        $password_hash = password_hash($nuova_password, PASSWORD_DEFAULT);
+
+        $stmt = $conn->prepare(
+            "UPDATE utenti
+             SET password_hash = ?
+             WHERE id = ? AND attivo = 1"
+        );
+        $stmt->bind_param("si", $password_hash, $utente_id);
+        $stmt->execute();
+        $stmt->close();
     }
 
     header("Location: index.php");
