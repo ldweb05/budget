@@ -9,6 +9,7 @@ if (($_SESSION['ruolo'] ?? '') === 'admin') {
 
 include 'db.php';
 date_default_timezone_set('Europe/Rome');
+$utente_id = intval($_SESSION['utente_id'] ?? 0);
 
 /*
 |--------------------------------------------------------------------------
@@ -55,8 +56,8 @@ if (isset($_POST['crea_mese'])) {
     $m_creare = $_POST['m_creare'];
     $a_creare = intval($_POST['a_creare']);
     
-    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (nome, anno, entrata, percentuale_risparmio) VALUES (?, ?, 900.00, 15)");
-    $ins_mese->bind_param("si", $m_creare, $a_creare);
+    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (utente_id, nome, anno, entrata, percentuale_risparmio) VALUES (?, ?, ?, 900.00, 15)");
+    $ins_mese->bind_param("isi", $utente_id, $m_creare, $a_creare);
     $ins_mese->execute();
     $mese_id = $conn->insert_id;
 
@@ -85,14 +86,14 @@ if (isset($_POST['update_budget'])) {
     $data_oggi = date('Y-m-d');
     
     // 1. Aggiorna l'entrata mensile normalmente
-    $stmt = $conn->prepare("UPDATE mesi SET entrata = ? WHERE id = ?");
-    $stmt->bind_param("di", $nuova_entrata, $mese_id);
+    $stmt = $conn->prepare("UPDATE mesi SET entrata = ? WHERE id = ? AND utente_id = ?");
+    $stmt->bind_param("dii", $nuova_entrata, $mese_id, $utente_id);
     $stmt->execute();
     $stmt->close();
 
     // 2. Recupera la percentuale di risparmio configurata per il mese
-    $stmt_percentuale = $conn->prepare("SELECT percentuale_risparmio FROM mesi WHERE id = ?");
-    $stmt_percentuale->bind_param("i", $mese_id);
+    $stmt_percentuale = $conn->prepare("SELECT percentuale_risparmio FROM mesi WHERE id = ? AND utente_id = ?");
+    $stmt_percentuale->bind_param("ii", $mese_id, $utente_id);
     $stmt_percentuale->execute();
     $percentuale_risparmio = floatval(
         $stmt_percentuale->get_result()->fetch_assoc()['percentuale_risparmio'] ?? 15
@@ -110,8 +111,8 @@ if (isset($_POST['update_budget'])) {
         $causale_automatica = "Risparmio Automatico " . $percentuale_display . "% - " . $mese_display;
 
         // 4. Inserisce il movimento nel fondo risparmi del salvadanaio
-        $stmt_fondo = $conn->prepare("INSERT INTO fondo_risparmio (importo, tipo, causale, data_movimento) VALUES (?, 'versamento', ?, ?)");
-        $stmt_fondo->bind_param("dss", $quota_salvadanaio, $causale_automatica, $data_oggi);
+        $stmt_fondo = $conn->prepare("INSERT INTO fondo_risparmio (utente_id, importo, tipo, causale, data_movimento) VALUES (?, ?, 'versamento', ?, ?)");
+        $stmt_fondo->bind_param("idss", $utente_id, $quota_salvadanaio, $causale_automatica, $data_oggi);
         $stmt_fondo->execute();
         $stmt_fondo->close();
     }
@@ -126,8 +127,8 @@ if (isset($_POST['add_fissa_nuova'])) {
     $desc = htmlspecialchars($_POST['descrizione_fissa']);
     $importo = floatval($_POST['importo_fissa']);
     if ($importo > 0 && !empty($desc)) {
-        $stmt = $conn->prepare("INSERT INTO spese_fisse (mese_id, descrizione, importo, pagato) VALUES (?, ?, ?, 0)");
-        $stmt->bind_param("isd", $mese_id, $desc, $importo);
+        $stmt = $conn->prepare("INSERT INTO spese_fisse (mese_id, descrizione, importo, pagato) SELECT id, ?, ?, 0 FROM mesi WHERE id = ? AND utente_id = ?");
+        $stmt->bind_param("sdii", $desc, $importo, $mese_id, $utente_id);
         $stmt->execute();
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
@@ -137,7 +138,7 @@ if (isset($_POST['add_fissa_nuova'])) {
 // Azione: Elimina una Spesa Fissa
 if (isset($_GET['delete_fissa'])) {
     $id_fissa = intval($_GET['delete_fissa']);
-    $conn->query("DELETE FROM spese_fisse WHERE id = $id_fissa");
+    $stmt = $conn->prepare("DELETE sf FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.id = ? AND m.utente_id = ?"); $stmt->bind_param("ii", $id_fissa, $utente_id); $stmt->execute(); $stmt->close();
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
 }
@@ -145,7 +146,7 @@ if (isset($_GET['delete_fissa'])) {
 // Azione: Toggle Checkbox Spese Fisse
 if (isset($_GET['toggle_fissa'])) {
     $id_fissa = intval($_GET['toggle_fissa']);
-    $conn->query("UPDATE spese_fisse SET pagato = 1 - pagato WHERE id = $id_fissa");
+    $stmt = $conn->prepare("UPDATE spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id SET sf.pagato = 1 - sf.pagato WHERE sf.id = ? AND m.utente_id = ?"); $stmt->bind_param("ii", $id_fissa, $utente_id); $stmt->execute(); $stmt->close();
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
 }
@@ -154,8 +155,8 @@ if (isset($_GET['toggle_fissa'])) {
 if (isset($_GET['delete_preferito'])) {
     $id_preferito = intval($_GET['delete_preferito']);
 
-    $stmt = $conn->prepare("DELETE FROM preferiti_spese WHERE id = ?");
-    $stmt->bind_param("i", $id_preferito);
+    $stmt = $conn->prepare("DELETE FROM preferiti_spese WHERE id = ? AND utente_id = ?");
+    $stmt->bind_param("ii", $id_preferito, $utente_id);
     $stmt->execute();
     $stmt->close();
 
@@ -170,11 +171,11 @@ if (isset($_POST['salva_preferito'])) {
 
     if ($importo > 0 && !empty($desc)) {
         $stmt = $conn->prepare(
-            "INSERT INTO preferiti_spese (descrizione, importo)
-             VALUES (?, ?)
+            "INSERT INTO preferiti_spese (utente_id, descrizione, importo)
+             VALUES (?, ?, ?)
              ON DUPLICATE KEY UPDATE importo = VALUES(importo)"
         );
-        $stmt->bind_param("sd", $desc, $importo);
+        $stmt->bind_param("isd", $utente_id, $desc, $importo);
         $stmt->execute();
         $stmt->close();
     }
@@ -191,8 +192,8 @@ if (isset($_POST['add_variabile'])) {
     $data_oggi = date('Y-m-d');
 
     if ($importo > 0 && !empty($desc)) {
-        $ins_var = $conn->prepare("INSERT INTO spese_variabili (mese_id, descrizione, importo, data_spesa) VALUES (?, ?, ?, ?)");
-        $ins_var->bind_param("isds", $mese_id, $desc, $importo, $data_oggi);
+        $ins_var = $conn->prepare("INSERT INTO spese_variabili (mese_id, descrizione, importo, data_spesa) SELECT id, ?, ?, ? FROM mesi WHERE id = ? AND utente_id = ?");
+        $ins_var->bind_param("sdsii", $desc, $importo, $data_oggi, $mese_id, $utente_id);
         $ins_var->execute();
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
@@ -202,7 +203,7 @@ if (isset($_POST['add_variabile'])) {
 // Azione: Elimina Spesa Variabile
 if (isset($_GET['delete_variabile'])) {
     $id_var = intval($_GET['delete_variabile']);
-    $conn->query("DELETE FROM spese_variabili WHERE id = $id_var");
+    $stmt = $conn->prepare("DELETE sv FROM spese_variabili sv INNER JOIN mesi m ON m.id = sv.mese_id WHERE sv.id = ? AND m.utente_id = ?"); $stmt->bind_param("ii", $id_var, $utente_id); $stmt->execute(); $stmt->close();
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
 }
@@ -230,14 +231,17 @@ if (isset($_POST['update_password'])) {
 }
 
 // Recupero dati del mese attivo (selezionato)
-$query_mese = $conn->prepare("SELECT * FROM mesi WHERE nome = ? AND anno = ?");
-$query_mese->bind_param("si", $mese_attivo, $anno_attivo);
+$query_mese = $conn->prepare("SELECT * FROM mesi WHERE utente_id = ? AND nome = ? AND anno = ?");
+$query_mese->bind_param("isi", $utente_id, $mese_attivo, $anno_attivo);
 $query_mese->execute();
 $risultato_mese = $query_mese->get_result();
 $mese_dati = $risultato_mese->fetch_assoc();
 
 // Recuperiamo l'elenco di tutti i mesi storici nel DB per il menu a tendina
-$elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, FIELD(nome, 'December', 'November', 'October', 'September', 'August', 'July', 'June', 'May', 'April', 'March', 'February', 'January')");
+$elenco_mesi_stmt = $conn->prepare("SELECT nome, anno FROM mesi WHERE utente_id = ? ORDER BY anno DESC, FIELD(nome, 'December', 'November', 'October', 'September', 'August', 'July', 'June', 'May', 'April', 'March', 'February', 'January')");
+$elenco_mesi_stmt->bind_param("i", $utente_id);
+$elenco_mesi_stmt->execute();
+$elenco_mesi_db = $elenco_mesi_stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -295,10 +299,16 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
     <?php else: 
         $mese_id = $mese_dati['id'];
 
-        $res_fisse = $conn->query("SELECT SUM(importo) as totale FROM spese_fisse WHERE mese_id = $mese_id");
+        $res_fisse_stmt = $conn->prepare("SELECT SUM(sf.importo) AS totale FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
+        $res_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
+        $res_fisse_stmt->execute();
+        $res_fisse = $res_fisse_stmt->get_result();
         $tot_fisse = $res_fisse->fetch_assoc()['totale'] ?? 0;
 
-        $res_var = $conn->query("SELECT SUM(importo) as totale FROM spese_variabili WHERE mese_id = $mese_id");
+        $res_var_stmt = $conn->prepare("SELECT SUM(sv.importo) AS totale FROM spese_variabili sv INNER JOIN mesi m ON m.id = sv.mese_id WHERE sv.mese_id = ? AND m.utente_id = ?");
+        $res_var_stmt->bind_param("ii", $mese_id, $utente_id);
+        $res_var_stmt->execute();
+        $res_var = $res_var_stmt->get_result();
         $tot_var = $res_var->fetch_assoc()['totale'] ?? 0;
 
         $entrata_totale = $mese_dati['entrata'];
@@ -348,7 +358,10 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex flex-wrap gap-2">
                                 <?php
-                                $preferiti_query = $conn->query("SELECT id, descrizione, importo FROM preferiti_spese ORDER BY id DESC LIMIT 5");
+                                $preferiti_stmt = $conn->prepare("SELECT id, descrizione, importo FROM preferiti_spese WHERE utente_id = ? ORDER BY id DESC LIMIT 5");
+$preferiti_stmt->bind_param("i", $utente_id);
+$preferiti_stmt->execute();
+$preferiti_query = $preferiti_stmt->get_result();
                                 while ($preferito = $preferiti_query->fetch_assoc()):
                                 ?>
                                     <span class="inline-flex items-center rounded-full bg-gray-100">
@@ -387,7 +400,10 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     <h3 class="text-sm font-bold text-gray-700 mb-3">📌 Spese Fisse (già considerate nel budget)</h3>
                     <ul class="divide-y divide-gray-100">
                         <?php
-                        $spese_fisse_query = $conn->query("SELECT * FROM spese_fisse WHERE mese_id = $mese_id");
+                        $spese_fisse_stmt = $conn->prepare("SELECT sf.* FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
+                        $spese_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
+                        $spese_fisse_stmt->execute();
+                        $spese_fisse_query = $spese_fisse_stmt->get_result();
                         while ($fissa = $spese_fisse_query->fetch_assoc()):
                         ?>
                         <li class="py-2.5 flex items-center justify-between">
@@ -417,7 +433,10 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     >
                     <ul id="elenco-spese" class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
                         <?php
-                        $spese_var_query = $conn->query("SELECT * FROM spese_variabili WHERE mese_id = $mese_id ORDER BY id DESC");
+                        $spese_var_stmt = $conn->prepare("SELECT sv.* FROM spese_variabili sv INNER JOIN mesi m ON m.id = sv.mese_id WHERE sv.mese_id = ? AND m.utente_id = ? ORDER BY sv.id DESC");
+                        $spese_var_stmt->bind_param("ii", $mese_id, $utente_id);
+                        $spese_var_stmt->execute();
+                        $spese_var_query = $spese_var_stmt->get_result();
                         if ($spese_var_query->num_rows == 0):
                             echo "<p class='text-xs text-gray-400 py-2'>Nessuna spesa registrata.</p>";
                         endif;
@@ -462,7 +481,10 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase">Elimina Spese Esistenti:</p>
                     <div class="max-h-24 overflow-y-auto divide-y divide-gray-100">
                         <?php
-                        $elenco_fisse = $conn->query("SELECT * FROM spese_fisse WHERE mese_id = $mese_id");
+                        $elenco_fisse_stmt = $conn->prepare("SELECT sf.* FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
+                        $elenco_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
+                        $elenco_fisse_stmt->execute();
+                        $elenco_fisse = $elenco_fisse_stmt->get_result();
                         while($f_item = $elenco_fisse->fetch_assoc()):
                         ?>
                         <div class="py-1.5 flex justify-between items-center text-xs">
