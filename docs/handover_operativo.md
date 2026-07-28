@@ -76,6 +76,19 @@ Ogni risposta deve sempre riportare:
 
 # Stato Dashboard v2
 
+## Stato roadmap
+
+Versione 2.1 completata:
+
+- inserimento spese in meno di 10 secondi;
+- Preferiti persistenti;
+- ricerca veloce.
+
+Prossimo intervento:
+
+- avvio Versione 2.2 (Grafici).
+
+
 Sono state completate le seguenti modifiche:
 
 - calcolo del Salvadanaio tramite percentuale configurata nel database;

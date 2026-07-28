@@ -34,9 +34,9 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 # Versione 2.1
 
 - Inserimento spese in meno di 10 secondi.
-- Preferiti.
-- Ultime operazioni.
-- Ricerca veloce.
+- ✅ Preferiti.
+- ✅ Ultime operazioni.
+- ✅ Ricerca veloce.
 
 ---
 
