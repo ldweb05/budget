@@ -199,7 +199,6 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                 <a href="statistiche.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     📊 Grafici
                 </a>
-                <a href="salvadanaio.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">🐷 Salvadanaio</a>
                 <select onchange="location = this.value;" class="bg-white/40 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/30 focus:outline-none bg-neutral-800">
                     <option value="" disabled selected>Cambia Mese...</option>
                     <option value="index.php" class="text-gray-800">Mese Corrente</option>
