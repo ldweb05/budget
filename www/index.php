@@ -144,6 +144,26 @@ if (isset($_GET['toggle_fissa'])) {
     exit;
 }
 
+// Azione: Salva Spesa Preferita
+if (isset($_POST['salva_preferito'])) {
+    $desc = trim($_POST['descrizione']);
+    $importo = floatval($_POST['importo']);
+
+    if ($importo > 0 && !empty($desc)) {
+        $stmt = $conn->prepare(
+            "INSERT INTO preferiti_spese (descrizione, importo)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE importo = VALUES(importo)"
+        );
+        $stmt->bind_param("sd", $desc, $importo);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
 // Azione: Inserimento Spesa Variabile
 if (isset($_POST['add_variabile'])) {
     $mese_id = intval($_POST['mese_id']);
@@ -279,8 +299,22 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                             <input type="number" id="importo-spesa" step="0.01" name="importo" placeholder="€" required class="w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div class="flex items-center justify-between gap-2">
-                            <div id="preferiti-spese" class="flex flex-wrap gap-2"></div>
-                            <button type="button" id="salva-preferito" class="shrink-0 text-xs font-semibold text-[#008080] hover:underline">
+                            <div class="flex flex-wrap gap-2">
+                                <?php
+                                $preferiti_query = $conn->query("SELECT descrizione, importo FROM preferiti_spese ORDER BY id DESC LIMIT 5");
+                                while ($preferito = $preferiti_query->fetch_assoc()):
+                                ?>
+                                    <button
+                                        type="button"
+                                        class="preferito-spesa px-2.5 py-1 rounded-full bg-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-200"
+                                        data-descrizione="<?php echo htmlspecialchars($preferito['descrizione'], ENT_QUOTES); ?>"
+                                        data-importo="<?php echo $preferito['importo']; ?>"
+                                    >
+                                        <?php echo htmlspecialchars($preferito['descrizione']); ?>
+                                    </button>
+                                <?php endwhile; ?>
+                            </div>
+                            <button type="submit" name="salva_preferito" class="shrink-0 text-xs font-semibold text-[#008080] hover:underline">
                                 ☆ Salva preferito
                             </button>
                         </div>
@@ -390,62 +424,15 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
     <script>
         const descrizioneSpesa = document.getElementById('descrizione-spesa');
         const importoSpesa = document.getElementById('importo-spesa');
-        const salvaPreferito = document.getElementById('salva-preferito');
-        const contenitorePreferiti = document.getElementById('preferiti-spese');
-        const chiavePreferiti = 'budget_preferiti_spese';
 
-        function leggiPreferiti() {
-            try {
-                return JSON.parse(localStorage.getItem(chiavePreferiti)) || [];
-            } catch (errore) {
-                return [];
-            }
-        }
-
-        function mostraPreferiti() {
-            if (!contenitorePreferiti) {
-                return;
-            }
-
-            contenitorePreferiti.innerHTML = '';
-
-            leggiPreferiti().forEach(function (preferito) {
-                const pulsante = document.createElement('button');
-                pulsante.type = 'button';
-                pulsante.className = 'px-2.5 py-1 rounded-full bg-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-200';
-                pulsante.textContent = preferito.descrizione;
-
-                pulsante.addEventListener('click', function () {
-                    descrizioneSpesa.value = preferito.descrizione;
-                    importoSpesa.value = preferito.importo;
-                    importoSpesa.focus();
-                    importoSpesa.select();
-                });
-
-                contenitorePreferiti.appendChild(pulsante);
+        document.querySelectorAll('.preferito-spesa').forEach(function (preferito) {
+            preferito.addEventListener('click', function () {
+                descrizioneSpesa.value = this.dataset.descrizione;
+                importoSpesa.value = this.dataset.importo;
+                importoSpesa.focus();
+                importoSpesa.select();
             });
-        }
-
-        if (salvaPreferito) {
-            salvaPreferito.addEventListener('click', function () {
-                const descrizione = descrizioneSpesa.value.trim();
-                const importo = importoSpesa.value;
-
-                if (!descrizione || !importo) {
-                    return;
-                }
-
-                const preferiti = leggiPreferiti().filter(function (preferito) {
-                    return preferito.descrizione.toLowerCase() !== descrizione.toLowerCase();
-                });
-
-                preferiti.unshift({ descrizione: descrizione, importo: importo });
-                localStorage.setItem(chiavePreferiti, JSON.stringify(preferiti.slice(0, 5)));
-                mostraPreferiti();
-            });
-        }
-
-        mostraPreferiti();
+        });
 
         const ricercaSpese = document.getElementById('ricerca-spese');
 
