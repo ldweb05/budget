@@ -201,6 +201,20 @@ if (isset($_GET['delete_variabile'])) {
     exit;
 }
 
+// Azione: Aggiorna Password Utente
+if (isset($_POST['update_password'])) {
+    $nuova_password = trim($_POST['nuova_password']);
+
+    if (!empty($nuova_password)) {
+        $env = file_get_contents('../.env');
+        $env = preg_replace('/APP_PASSWORD=.*/', 'APP_PASSWORD=' . $nuova_password, $env);
+        file_put_contents('../.env', $env);
+    }
+
+    header("Location: index.php");
+    exit;
+}
+
 // Recupero dati del mese attivo (selezionato)
 $query_mese = $conn->prepare("SELECT * FROM mesi WHERE nome = ? AND anno = ?");
 $query_mese->bind_param("si", $mese_attivo, $anno_attivo);
