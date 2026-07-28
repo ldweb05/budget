@@ -81,7 +81,7 @@ Completato:
 Da completare successivamente:
 
 - Possibilità di visualizzare/nascondere la password nella schermata di login.
-- Miglioramento responsive per utilizzo da smartphone e tablet.
+- ✅ Miglioramento responsive per utilizzo da smartphone e tablet.
 
 ## Isolamento dati multiutente
 

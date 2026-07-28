@@ -125,11 +125,11 @@ Isolamento completo dei dati finanziari completato:
 
 Prossimi interventi:
 
-- aggiungere la possibilità di visualizzare/nascondere la password nella schermata di login;
-- migliorare il responsive per smartphone e tablet.
+- aggiungere la possibilità di visualizzare/nascondere la password nella schermata di login.
 
 
 Sono state completate le seguenti modifiche:
+- miglioramento responsive per smartphone e tablet.
 
 - calcolo del Salvadanaio tramite percentuale configurata nel database;
 - calcolo del risparmio sull'entrata totale;
