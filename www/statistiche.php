@@ -52,11 +52,11 @@ $mese_dati = $query_mese->get_result()->fetch_assoc();
             $tot_var = $res_var->fetch_assoc()['totale'] ?? 0;
 
             $entrata_totale = $mese_dati['entrata'];
-            $netto_post_fisse = $entrata_totale - $tot_fisse;
-            $risparmio_15 = $netto_post_fisse * ($mese_dati['percentuale_risparmio'] / 100);
+            $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
+            $quota_risparmio = $entrata_totale * ($percentuale_risparmio / 100);
             
             // Budget iniziale per spese varie (il 100% della nostra barra)
-            $budget_variabile_iniziale = $netto_post_fisse - $risparmio_15;
+            $budget_variabile_iniziale = $entrata_totale - $quota_risparmio - $tot_fisse;
             $budget_restante_mese = $budget_variabile_iniziale - $tot_var;
 
             // Calcolo percentuale spesa
@@ -78,7 +78,7 @@ $mese_dati = $query_mese->get_result()->fetch_assoc();
         ?>
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <h3 class="text-base font-bold text-gray-700 mb-1">Stato dei consumi di <?php echo $mesi_it[$mese_corrente]; ?></h3>
-            <p class="text-xs text-gray-400 mb-4">Analisi del budget di spesa varia quotidiana (fisse e 15% risparmio già protetti)</p>
+            <p class="text-xs text-gray-400 mb-4">Analisi del budget di spesa varia quotidiana (spese fisse e risparmio già protetti)</p>
             
             <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
                 <span>Speso: <?php echo number_format($tot_var, 2, ',', '.'); ?>€ (<?php echo round($percentuale_spesa); ?>%)</span>
