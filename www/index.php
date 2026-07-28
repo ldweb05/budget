@@ -201,6 +201,64 @@ if (isset($_GET['delete_variabile'])) {
     exit;
 }
 
+// Azione: Crea Utente
+if (isset($_POST['create_user']) && ($_SESSION['ruolo'] ?? '') === 'admin') {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+    $ruolo = $_POST['ruolo'] === 'admin' ? 'admin' : 'user';
+
+    if ($username !== '' && $password !== '') {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $conn->prepare(
+            "INSERT INTO utenti (username, password_hash, ruolo)
+             VALUES (?, ?, ?)"
+        );
+        $stmt->bind_param("sss", $username, $password_hash, $ruolo);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    header("Location: index.php");
+    exit;
+}
+
+// Azione: Aggiorna Ruolo e Stato Utente
+if (isset($_POST['update_user']) && ($_SESSION['ruolo'] ?? '') === 'admin') {
+    $id_utente = intval($_POST['id_utente']);
+    $ruolo = $_POST['ruolo'] === 'admin' ? 'admin' : 'user';
+    $attivo = isset($_POST['attivo']) ? 1 : 0;
+
+    if ($id_utente > 0 && $id_utente !== intval($_SESSION['utente_id'] ?? 0)) {
+        $stmt = $conn->prepare(
+            "UPDATE utenti
+             SET ruolo = ?, attivo = ?
+             WHERE id = ?"
+        );
+        $stmt->bind_param("sii", $ruolo, $attivo, $id_utente);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    header("Location: index.php");
+    exit;
+}
+
+// Azione: Elimina Utente
+if (isset($_POST['delete_user']) && ($_SESSION['ruolo'] ?? '') === 'admin') {
+    $id_utente = intval($_POST['id_utente']);
+
+    if ($id_utente > 0 && $id_utente !== intval($_SESSION['utente_id'] ?? 0)) {
+        $stmt = $conn->prepare("DELETE FROM utenti WHERE id = ?");
+        $stmt->bind_param("i", $id_utente);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    header("Location: index.php");
+    exit;
+}
+
 // Azione: Aggiorna Password Utente
 if (isset($_POST['update_password'])) {
     $nuova_password = trim($_POST['nuova_password']);
@@ -463,6 +521,45 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         <?php endwhile; ?>
                     </div>
                 </div>
+
+                <?php if (($_SESSION['ruolo'] ?? '') === 'admin'): ?>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm md:col-span-2">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Gestione Utenti</h4>
+
+                    <form method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-5">
+                        <input type="text" name="username" placeholder="Username" required class="px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="password" name="password" placeholder="Password" required autocomplete="new-password" class="px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="ruolo" class="px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="user">Utente</option>
+                            <option value="admin">Amministratore</option>
+                        </select>
+                        <button type="submit" name="create_user" class="bg-[#12A0D7] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition">Crea Utente</button>
+                    </form>
+
+                    <div class="space-y-2">
+                        <?php
+                        $utenti_query = $conn->query("SELECT id, username, ruolo, attivo FROM utenti ORDER BY username");
+                        while ($utente = $utenti_query->fetch_assoc()):
+                            $utente_corrente = intval($utente['id']) === intval($_SESSION['utente_id'] ?? 0);
+                        ?>
+                        <form method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center border-t border-gray-100 pt-2">
+                            <input type="hidden" name="id_utente" value="<?php echo intval($utente['id']); ?>">
+                            <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($utente['username'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <select name="ruolo" <?php echo $utente_corrente ? 'disabled' : ''; ?> class="px-3 py-1.5 border rounded-xl text-sm bg-gray-50">
+                                <option value="user" <?php echo $utente['ruolo'] === 'user' ? 'selected' : ''; ?>>Utente</option>
+                                <option value="admin" <?php echo $utente['ruolo'] === 'admin' ? 'selected' : ''; ?>>Amministratore</option>
+                            </select>
+                            <label class="flex items-center gap-2 text-xs text-gray-600">
+                                <input type="checkbox" name="attivo" value="1" <?php echo intval($utente['attivo']) === 1 ? 'checked' : ''; ?> <?php echo $utente_corrente ? 'disabled' : ''; ?>>
+                                Attivo
+                            </label>
+                            <button type="submit" name="update_user" <?php echo $utente_corrente ? 'disabled' : ''; ?> class="bg-gray-800 text-white text-xs font-semibold px-3 py-2 rounded-xl disabled:opacity-40">Aggiorna</button>
+                            <button type="submit" name="delete_user" <?php echo $utente_corrente ? 'disabled' : ''; ?> onclick="return confirm('Vuoi eliminare questo utente?')" class="bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-xl disabled:opacity-40">Elimina</button>
+                        </form>
+                        <?php endwhile; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Cambia Password</h4>
