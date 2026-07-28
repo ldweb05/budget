@@ -54,9 +54,9 @@ $saldo_fondo = $tot_versamenti - $tot_prelievi;
 <body class="bg-gray-100 font-sans min-h-screen pb-12">
 
     <header class="bg-[#008080] text-white py-4 shadow-md sticky top-0 z-40 px-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div>
-                <h1 class="text-xl font-bold tracking-wide">🐷 FONDO RISPARMI (15%)</h1>
+                <h1 class="text-lg sm:text-xl font-bold tracking-wide">🐷 FONDO RISPARMI (15%)</h1>
                 <p class="text-sm opacity-90">Il tuo paracadute finanziario</p>
             </div>
             <a href="index.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-4 py-2 rounded-xl border border-white/20 transition">🏠 Home</a>

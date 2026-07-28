@@ -106,7 +106,7 @@ $utenti_query = $conn->query(
 </head>
 <body class="bg-gray-100 font-sans min-h-screen pb-12">
     <header class="bg-gray-900 text-white py-3 shadow-md px-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div>
                 <h1 class="text-lg font-bold tracking-wide">AMMINISTRAZIONE</h1>
                 <p class="text-xs text-gray-300">Gestione utenti</p>

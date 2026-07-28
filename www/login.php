@@ -45,7 +45,7 @@ if (isset($_POST['login'])) {
 </head>
 <body class="bg-gray-100 font-sans flex items-center justify-center min-h-screen px-4">
 
-    <div class="max-w-md w-full bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+    <div class="w-full max-w-md bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-200">
         <div class="text-center mb-6">
             <div class="text-4xl mb-2">🔵</div>
             <h1 class="text-xl font-bold text-gray-700 tracking-wide">ACCESSO AL BUDGET</h1>

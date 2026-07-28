@@ -254,7 +254,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
 <body class="bg-gray-100 font-sans min-h-screen pb-12">
 
     <header class="bg-[#008080] text-white py-3 shadow-md sticky top-0 z-40 px-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div class="text-left">
                 <h1 class="text-lg font-bold tracking-wide">IL MIO BUDGET</h1>
                 <p class="text-xs opacity-90"><?php echo $mese_display; ?></p>
@@ -351,11 +351,11 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                     <h3 class="text-sm font-bold text-gray-700 mb-3">🛒 Aggiungi Spesa (Uscite, Spesa, Benzina...)</h3>
                     <form method="POST" class="space-y-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
-                        <div class="flex gap-2">
+                        <div class="flex flex-col sm:flex-row gap-2">
                             <input type="text" id="descrizione-spesa" name="descrizione" placeholder="Es. Supermercato" required autofocus class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <input type="number" id="importo-spesa" step="0.01" name="importo" placeholder="€" required class="w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="importo-spesa" step="0.01" name="importo" placeholder="€" required class="w-full sm:w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div class="flex items-center justify-between gap-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div class="flex flex-wrap gap-2">
                                 <?php
                                 $preferiti_stmt = $conn->prepare("SELECT id, descrizione, importo FROM preferiti_spese WHERE utente_id = ? ORDER BY id DESC LIMIT 5");
@@ -463,7 +463,7 @@ $preferiti_query = $preferiti_stmt->get_result();
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Modifica Entrata Mensile</h4>
-                    <form method="POST" class="flex gap-2">
+                    <form method="POST" class="flex flex-col sm:flex-row gap-2">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <input type="number" step="0.01" name="nuova_entrata" value="<?php echo $entrata_totale; ?>" class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" name="update_budget" class="bg-[#12A0D7] text-white text-xs font-semibold px-4 rounded-xl hover:opacity-90 transition">Salva</button>
@@ -472,7 +472,7 @@ $preferiti_query = $preferiti_stmt->get_result();
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Aggiungi / Rimuovi Spese Fisse</h4>
-                    <form method="POST" class="flex gap-2 mb-3">
+                    <form method="POST" class="flex flex-col sm:flex-row gap-2 mb-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <input type="text" name="descrizione_fissa" placeholder="Nuova voce fissa" required class="flex-1 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <input type="number" step="0.01" name="importo_fissa" placeholder="€" required class="w-16 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -497,7 +497,7 @@ $preferiti_query = $preferiti_stmt->get_result();
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Cambia Password</h4>
-                    <form method="POST" class="flex gap-2">
+                    <form method="POST" class="flex flex-col sm:flex-row gap-2">
                         <input
                             type="password"
                             name="nuova_password"

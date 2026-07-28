@@ -41,7 +41,7 @@ if ($mese_precedente_dati) {
 <body class="bg-gray-100 font-sans min-h-screen pb-12">
 
     <header class="bg-[#008080] text-white py-4 shadow-md sticky top-0 z-40 px-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div>
                 <h1 class="text-xl font-bold tracking-wide">📊 RIEPILOGO & STATISTICHE</h1>
                 <p class="text-sm opacity-90">Analisi dell'andamento spese</p>
