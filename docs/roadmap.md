@@ -45,7 +45,7 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 - ✅ Grafici.
 - ✅ Statistiche.
 - ✅ Confronto mensile.
-- Analisi annuale.
+- ✅ Analisi annuale.
 
 ---
 

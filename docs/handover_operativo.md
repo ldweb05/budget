@@ -95,7 +95,7 @@ Versione 2.3
 
 Prossimo intervento:
 
-- Analisi annuale.
+- ✅ Analisi annuale.
 
 
 Sono state completate le seguenti modifiche:
