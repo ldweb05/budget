@@ -144,6 +144,19 @@ if (isset($_GET['toggle_fissa'])) {
     exit;
 }
 
+// Azione: Elimina Spesa Preferita
+if (isset($_GET['delete_preferito'])) {
+    $id_preferito = intval($_GET['delete_preferito']);
+
+    $stmt = $conn->prepare("DELETE FROM preferiti_spese WHERE id = ?");
+    $stmt->bind_param("i", $id_preferito);
+    $stmt->execute();
+    $stmt->close();
+
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
 // Azione: Salva Spesa Preferita
 if (isset($_POST['salva_preferito'])) {
     $desc = trim($_POST['descrizione']);
@@ -301,17 +314,27 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex flex-wrap gap-2">
                                 <?php
-                                $preferiti_query = $conn->query("SELECT descrizione, importo FROM preferiti_spese ORDER BY id DESC LIMIT 5");
+                                $preferiti_query = $conn->query("SELECT id, descrizione, importo FROM preferiti_spese ORDER BY id DESC LIMIT 5");
                                 while ($preferito = $preferiti_query->fetch_assoc()):
                                 ?>
-                                    <button
-                                        type="button"
-                                        class="preferito-spesa px-2.5 py-1 rounded-full bg-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-200"
-                                        data-descrizione="<?php echo htmlspecialchars($preferito['descrizione'], ENT_QUOTES); ?>"
-                                        data-importo="<?php echo $preferito['importo']; ?>"
-                                    >
-                                        <?php echo htmlspecialchars($preferito['descrizione']); ?>
-                                    </button>
+                                    <span class="inline-flex items-center rounded-full bg-gray-100">
+                                        <button
+                                            type="button"
+                                            class="preferito-spesa pl-2.5 pr-1 py-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                                            data-descrizione="<?php echo htmlspecialchars($preferito['descrizione'], ENT_QUOTES); ?>"
+                                            data-importo="<?php echo $preferito['importo']; ?>"
+                                        >
+                                            <?php echo htmlspecialchars($preferito['descrizione']); ?>
+                                        </button>
+                                        <a
+                                            href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_preferito=<?php echo $preferito['id']; ?>"
+                                            onclick="return confirm('Vuoi eliminare questo preferito?')"
+                                            class="px-2 py-1 text-xs font-bold text-red-400 hover:text-red-600"
+                                            aria-label="Elimina preferito"
+                                        >
+                                            ×
+                                        </a>
+                                    </span>
                                 <?php endwhile; ?>
                             </div>
                             <button type="submit" name="salva_preferito" class="shrink-0 text-xs font-semibold text-[#008080] hover:underline">
