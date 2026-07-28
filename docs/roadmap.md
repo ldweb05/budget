@@ -51,6 +51,14 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 
 # Versione 3.0
 
+## Gestione utente e interfaccia
+
+- Gestione password utente dalla dashboard.
+- Possibilità di visualizzare/nascondere la password nella schermata di login.
+- Miglioramento responsive per utilizzo da smartphone e tablet.
+
+## Funzionalità future
+
 - Backup dall'interfaccia.
 - Esportazione PDF.
 - Esportazione Excel.

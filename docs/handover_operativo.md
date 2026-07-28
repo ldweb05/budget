@@ -95,7 +95,10 @@ Versione 2.3
 
 Prossimo intervento:
 
-- ✅ Analisi annuale.
+- Gestione utente e interfaccia:
+  - gestione password utente dalla dashboard;
+  - visualizzazione/nascondi password nella schermata di login;
+  - miglioramento responsive per smartphone e tablet.
 
 
 Sono state completate le seguenti modifiche:
