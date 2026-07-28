@@ -263,7 +263,6 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         <?php echo number_format($budget_giornaliero, 2, ',', '.'); ?> €
                     </div>
                     <p class="text-xs text-gray-500 leading-relaxed">
-                        Entrate mese: <span class="font-semibold"><?php echo number_format($entrata_totale, 2, ',', '.'); ?>€</span><br>
                         Disponibilità rimasta: <span class="font-semibold"><?php echo number_format($budget_restante_mese, 2, ',', '.'); ?>€</span>
                         <?php if ($giorni_rimasti > 1): ?>
                             <br>Giorni alla fine del mese: <span class="font-semibold"><?php echo $giorni_rimasti; ?></span>
