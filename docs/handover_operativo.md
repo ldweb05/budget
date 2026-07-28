@@ -43,22 +43,60 @@ Ogni risposta deve sempre riportare:
 
 # Regole di sviluppo
 
-(da completare)
+- Budget deve rispondere alla domanda: "Quanto posso spendere oggi senza compromettere il resto del mese?";
+- il budget giornaliero è il dato principale della Dashboard;
+- il Salvadanaio usa la percentuale `percentuale_risparmio` salvata nella tabella `mesi`;
+- il risparmio viene calcolato sull'entrata totale;
+- le spese fisse sono sempre considerate impegnate;
+- le spese variabili riducono il budget disponibile;
+- il residuo viene distribuito sui giorni rimanenti del mese;
+- una modifica per volta;
+- nessun refactoring o intervento non richiesto.
 
 ---
 
 # Gestione dei commit
 
-(da completare)
+- eseguire il commit solo dopo il completamento delle verifiche obbligatorie;
+- includere nel commit esclusivamente i file interessati dalla modifica;
+- usare un messaggio breve e descrittivo;
+- verificare dopo il commit che il working tree sia pulito.
 
 ---
 
 # Gestione delle release
 
-(da completare)
+- il repository è gestito esclusivamente in locale;
+- non è configurato alcun repository remoto;
+- la release corrente è identificata dal tag `v1.2.0-dashboard-v2`;
+- il tag punta al commit `5992a65`;
+- è disponibile l'archivio locale `budget-v1.2.0-dashboard-v2.tar.gz`.
+
+---
+
+# Stato Dashboard v2
+
+Sono state completate le seguenti modifiche:
+
+- calcolo del Salvadanaio tramite percentuale configurata nel database;
+- calcolo del risparmio sull'entrata totale;
+- calcolo del budget disponibile dopo risparmio, spese fisse e spese variabili;
+- rimozione del collegamento al Salvadanaio dalla Dashboard;
+- maggiore evidenza visiva del budget giornaliero;
+- semplificazione del riepilogo;
+- autofocus sul campo descrizione della spesa;
+- testo del pulsante aggiornato in "Aggiungi Spesa";
+- chiarimento che le spese fisse sono già considerate nel budget.
 
 ---
 
 # Checklist finale
 
-(da completare)
+1. leggere un solo file;
+2. applicare la modifica esclusivamente tramite script Python;
+3. eseguire `php -l` nel container Docker;
+4. eseguire `git diff --check`;
+5. eseguire `git diff`;
+6. controllare che il diff contenga solo la modifica prevista;
+7. creare il commit;
+8. verificare che il working tree sia pulito.
