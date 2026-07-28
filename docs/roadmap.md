@@ -63,6 +63,7 @@ Completato:
 - ✅ Gestione utenti da parte dell'amministratore.
 - ✅ Eliminazione della dipendenza dal file `.env` per il login.
 - ✅ Logout dell'utente autenticato.
+- ✅ Possibilità di visualizzare/nascondere la password nella schermata di login.
 
 ## Separazione area admin e area utente
 
@@ -78,11 +79,6 @@ Completato:
 - ✅ Protetta la dashboard finanziaria impedendo l'accesso agli amministratori.
 - ✅ Verificati sintassi, redirect e separazione delle autorizzazioni.
 
-Da completare successivamente:
-
-- Possibilità di visualizzare/nascondere la password nella schermata di login.
-
-
 ## Isolamento dati multiutente
 
 Completato:
@@ -92,6 +88,7 @@ Completato:
 - ✅ Eliminando un utente vengono eliminati automaticamente tutti i suoi dati finanziari (ON DELETE CASCADE).
 - ✅ La ricreazione di un utente con lo stesso username genera un ambiente completamente vuoto.
 - ✅ Miglioramento responsive per utilizzo da smartphone e tablet.
+
 
 ---
 
