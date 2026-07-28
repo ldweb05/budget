@@ -195,6 +195,28 @@ if ($mese_precedente_dati) {
             </div>
         </div>
 
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 class="text-base font-bold text-gray-700 mb-1">Analisi annuale</h3>
+            <p class="text-xs text-gray-400 mb-4">Totale spese variabili per anno</p>
+
+            <?php
+            $analisi_annuale = $conn->query("
+                SELECT anno, SUM(spese_variabili.importo) AS totale
+                FROM mesi
+                LEFT JOIN spese_variabili ON spese_variabili.mese_id = mesi.id
+                GROUP BY anno
+                ORDER BY anno DESC
+            ");
+
+            while ($anno = $analisi_annuale->fetch_assoc()):
+            ?>
+            <div class="flex justify-between text-sm py-2 border-b border-gray-100">
+                <span class="font-semibold text-gray-700"><?php echo $anno['anno']; ?></span>
+                <span><?php echo number_format($anno['totale'] ?? 0, 2, ',', '.'); ?> €</span>
+            </div>
+            <?php endwhile; ?>
+        </div>
+
     </main>
 </body>
 </html>
