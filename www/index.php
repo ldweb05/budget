@@ -84,17 +84,24 @@ if (isset($_POST['update_budget'])) {
     $stmt->execute();
     $stmt->close();
 
-    // 2. Recupera il totale di TUTTE le spese fisse del mese (a prescindere se spuntate o meno)
-    $res_fisse = $conn->query("SELECT SUM(importo) as totale FROM spese_fisse WHERE mese_id = $mese_id");
-    $tot_fisse = $res_fisse->fetch_assoc()['totale'] ?? 0;
+    // 2. Recupera la percentuale di risparmio configurata per il mese
+    $stmt_percentuale = $conn->prepare("SELECT percentuale_risparmio FROM mesi WHERE id = ?");
+    $stmt_percentuale->bind_param("i", $mese_id);
+    $stmt_percentuale->execute();
+    $percentuale_risparmio = floatval(
+        $stmt_percentuale->get_result()->fetch_assoc()['percentuale_risparmio'] ?? 15
+    );
+    $stmt_percentuale->close();
 
-    // 3. Calcola il 15% sul NETTO (Entrata - Spese Fisse)
-    $netto_post_fisse = $nuova_entrata - $tot_fisse;
-    $quota_salvadanaio = $netto_post_fisse * 0.15;
+    // 3. Calcola il risparmio sull'entrata totale, prima di qualsiasi spesa
+    $quota_salvadanaio = $nuova_entrata * ($percentuale_risparmio / 100);
 
     if ($quota_salvadanaio > 0) {
-        // Genera la causale automatica dinamica (es. "Risparmio Automatico 15% - Gennaio 2026")
-        $causale_automatica = "Risparmio Automatico 15% - " . $mese_display;
+        $percentuale_display = number_format($percentuale_risparmio, 2, ',', '');
+        $percentuale_display = rtrim(rtrim($percentuale_display, '0'), ',');
+
+        // Genera la causale automatica usando la percentuale configurata
+        $causale_automatica = "Risparmio Automatico " . $percentuale_display . "% - " . $mese_display;
 
         // 4. Inserisce il movimento nel fondo risparmi del salvadanaio
         $stmt_fondo = $conn->prepare("INSERT INTO fondo_risparmio (importo, tipo, causale, data_movimento) VALUES (?, 'versamento', ?, ?)");
@@ -229,9 +236,10 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
         $tot_var = $res_var->fetch_assoc()['totale'] ?? 0;
 
         $entrata_totale = $mese_dati['entrata'];
-        $netto_post_fisse = $entrata_totale - $tot_fisse;
-        $risparmio_15 = $netto_post_fisse * ($mese_dati['percentuale_risparmio'] / 100);
-        $budget_variabile_iniziale = $netto_post_fisse - $risparmio_15;
+        $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
+        $quota_risparmio = $entrata_totale * ($percentuale_risparmio / 100);
+        $entrata_dopo_risparmio = $entrata_totale - $quota_risparmio;
+        $budget_variabile_iniziale = $entrata_dopo_risparmio - $tot_fisse;
         $budget_restante_mese = $budget_variabile_iniziale - $tot_var;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
