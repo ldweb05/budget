@@ -455,6 +455,28 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         <?php endwhile; ?>
                     </div>
                 </div>
+
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Cambia Password</h4>
+                    <form method="POST" class="flex gap-2">
+                        <input
+                            type="password"
+                            name="nuova_password"
+                            placeholder="Nuova password"
+                            required
+                            autocomplete="new-password"
+                            class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <button
+                            type="submit"
+                            name="update_password"
+                            onclick="return confirm('Vuoi cambiare la password di accesso?')"
+                            class="bg-gray-800 text-white text-xs font-semibold px-4 rounded-xl hover:bg-gray-900 transition"
+                        >
+                            Aggiorna
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
