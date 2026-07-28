@@ -88,9 +88,14 @@ Versione 2.2:
 
 - Grafici completati.
 
+Versione 2.3
+
+- Statistiche completate.
+- Confronto mensile completato.
+
 Prossimo intervento:
 
-- Statistiche.
+- Analisi annuale.
 
 
 Sono state completate le seguenti modifiche:

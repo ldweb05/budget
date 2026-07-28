@@ -43,7 +43,7 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 # Versione 2.2
 
 - ✅ Grafici.
-- Statistiche.
+- ✅ Statistiche.
 - Confronto mensile.
 - Analisi annuale.
 
