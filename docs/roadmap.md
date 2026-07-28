@@ -66,17 +66,17 @@ Completato:
 
 ## Separazione area admin e area utente
 
-Prossimo intervento:
+Completato:
 
-- Creare `admin.php` come dashboard amministrativa dedicata.
-- Reindirizzare gli amministratori da `login.php` verso `admin.php`.
-- Mantenere `index.php` riservato agli utenti con ruolo `user`.
-- Impedire agli amministratori di accedere ai dati finanziari.
-- Mostrare nell'area admin esclusivamente elenco utenti e relative azioni.
-- Consentire creazione, modifica, attivazione, disattivazione ed eliminazione utenti.
-- Proteggere `admin.php` consentendo l'accesso esclusivamente agli amministratori.
-- Proteggere Dashboard, Grafici e Salvadanaio consentendo l'accesso esclusivamente agli utenti.
-- Verificare login, redirect, autorizzazioni e logout per entrambi i ruoli.
+- ✅ Creata `admin.php` come dashboard amministrativa dedicata.
+- ✅ Reindirizzati gli amministratori da `login.php` verso `admin.php`.
+- ✅ Riservato `index.php` agli utenti con ruolo `user`.
+- ✅ Impedito agli amministratori l'accesso ai dati finanziari.
+- ✅ Limitata l'area admin alla gestione degli utenti.
+- ✅ Consentite creazione, modifica, attivazione, disattivazione ed eliminazione utenti.
+- ✅ Protetta `admin.php` consentendo l'accesso esclusivamente agli amministratori.
+- ✅ Protetta la dashboard finanziaria impedendo l'accesso agli amministratori.
+- ✅ Verificati sintassi, redirect e separazione delle autorizzazioni.
 
 Da completare successivamente:
 

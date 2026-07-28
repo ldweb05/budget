@@ -105,18 +105,21 @@ Gestione utenti e autenticazione tramite database completata:
 - eliminata la modifica del file `.env` dalla dashboard;
 - aggiunta la funzionalità di logout.
 
-Prossimo intervento:
+Separazione area amministrativa e area utente completata:
 
-- separare completamente l'area amministrativa dalla dashboard del budget;
-- creare `admin.php` come pagina dedicata esclusivamente alla gestione utenti;
-- reindirizzare gli utenti con ruolo `admin` da `login.php` verso `admin.php`;
-- mantenere `index.php` riservato agli utenti con ruolo `user`;
-- impedire agli amministratori di visualizzare mesi, spese, grafici e Salvadanaio;
-- mostrare nell'area admin esclusivamente elenco utenti, creazione, modifica, attivazione, disattivazione, eliminazione e logout;
-- proteggere `admin.php` consentendo l'accesso esclusivamente agli amministratori;
-- proteggere le pagine finanziarie impedendo l'accesso agli amministratori;
-- verificare separatamente login, redirect, autorizzazioni e logout per entrambi i ruoli;
-- completare successivamente visualizzazione/nascondi password e miglioramento responsive.
+- creata `admin.php` come pagina dedicata esclusivamente alla gestione utenti;
+- reindirizzati gli utenti con ruolo `admin` da `login.php` verso `admin.php`;
+- mantenuto `index.php` riservato agli utenti con ruolo `user`;
+- impedito agli amministratori di visualizzare mesi, spese, grafici e Salvadanaio;
+- limitata l'area admin a elenco utenti, creazione, modifica, attivazione, disattivazione, eliminazione, cambio password e logout;
+- protetta `admin.php` consentendo l'accesso esclusivamente agli amministratori;
+- protetta la dashboard finanziaria impedendo l'accesso agli amministratori;
+- verificate sintassi, redirect e separazione delle autorizzazioni.
+
+Prossimi interventi:
+
+- aggiungere la possibilità di visualizzare/nascondere la password nella schermata di login;
+- migliorare il responsive per smartphone e tablet.
 
 
 Sono state completate le seguenti modifiche:

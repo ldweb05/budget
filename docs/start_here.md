@@ -83,4 +83,23 @@ Ordine di lettura consigliato:
 6. handover_operativo.md
 7. README.md
 
+# Architettura corrente
+
+L'applicazione è suddivisa in due aree completamente separate.
+
+## Area utente
+
+- `index.php` è riservato agli utenti con ruolo `user`;
+- contiene esclusivamente le funzionalità relative al budget personale.
+
+## Area amministrativa
+
+- `admin.php` è riservato agli utenti con ruolo `admin`;
+- consente esclusivamente la gestione degli utenti (creazione, modifica, attivazione, eliminazione e cambio password);
+- gli amministratori non possono accedere ai dati finanziari.
+
+L'autenticazione reindirizza automaticamente ogni utente nell'area corretta in base al ruolo.
+
+---
+
 Questo documento è il punto di ingresso dell'intero progetto.
