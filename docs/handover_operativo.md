@@ -84,9 +84,13 @@ Versione 2.1 completata:
 - Preferiti persistenti;
 - ricerca veloce.
 
+Versione 2.2:
+
+- Grafici completati.
+
 Prossimo intervento:
 
-- avvio Versione 2.2 (Grafici).
+- Statistiche.
 
 
 Sono state completate le seguenti modifiche:
