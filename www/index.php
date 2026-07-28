@@ -312,7 +312,13 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
                     <h3 class="text-sm font-bold text-gray-700 mb-3">🕒 Ultime Spese Varie</h3>
-                    <ul class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+                    <input
+                        type="search"
+                        id="ricerca-spese"
+                        placeholder="Cerca una spesa..."
+                        class="w-full mb-3 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <ul id="elenco-spese" class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
                         <?php
                         $spese_var_query = $conn->query("SELECT * FROM spese_variabili WHERE mese_id = $mese_id ORDER BY id DESC");
                         if ($spese_var_query->num_rows == 0):
@@ -320,9 +326,9 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                         endif;
                         while ($variabile = $spese_var_query->fetch_assoc()):
                         ?>
-                        <li class="py-2 flex justify-between items-center">
+                        <li class="spesa-variabile py-2 flex justify-between items-center">
                             <div>
-                                <p class="text-sm text-gray-700 font-medium"><?php echo $variabile['descrizione']; ?></p>
+                                <p class="descrizione-spesa text-sm text-gray-700 font-medium"><?php echo $variabile['descrizione']; ?></p>
                                 <p class="text-[10px] text-gray-400">
                                     <?php echo date('d/m', strtotime($variabile['data_spesa'])); ?> 
                                     • <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_variabile=<?php echo $variabile['id']; ?>" class="text-red-400 hover:underline">Elimina</a>
@@ -374,5 +380,20 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
 
     <?php endif; ?>
     </main>
+
+    <script>
+        const ricercaSpese = document.getElementById('ricerca-spese');
+
+        if (ricercaSpese) {
+            ricercaSpese.addEventListener('input', function () {
+                const testo = this.value.toLowerCase().trim();
+
+                document.querySelectorAll('.spesa-variabile').forEach(function (spesa) {
+                    const descrizione = spesa.querySelector('.descrizione-spesa').textContent.toLowerCase();
+                    spesa.style.display = descrizione.includes(testo) ? '' : 'none';
+                });
+            });
+        }
+    </script>
 </body>
 </html>
