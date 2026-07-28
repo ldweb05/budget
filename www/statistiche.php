@@ -6,6 +6,8 @@ date_default_timezone_set('Europe/Rome');
 
 $mese_corrente = date('F');
 $anno_corrente = date('Y');
+$mese_precedente = date('F', strtotime('first day of last month'));
+$anno_precedente = date('Y', strtotime('first day of last month'));
 
 $mesi_it = ["January" => "Gennaio", "February" => "Febbraio", "March" => "Marzo", "April" => "Aprile", "May" => "Maggio", "June" => "Giugno", "July" => "Luglio", "August" => "Agosto", "September" => "Settembre", "October" => "Ottobre", "November" => "Novembre", "December" => "Dicembre"];
 
@@ -14,6 +16,18 @@ $query_mese = $conn->prepare("SELECT * FROM mesi WHERE nome = ? AND anno = ?");
 $query_mese->bind_param("si", $mese_corrente, $anno_corrente);
 $query_mese->execute();
 $mese_dati = $query_mese->get_result()->fetch_assoc();
+
+$query_precedente = $conn->prepare("SELECT id FROM mesi WHERE nome = ? AND anno = ?");
+$query_precedente->bind_param("si", $mese_precedente, $anno_precedente);
+$query_precedente->execute();
+$mese_precedente_dati = $query_precedente->get_result()->fetch_assoc();
+
+$tot_var_precedente = null;
+if ($mese_precedente_dati) {
+    $mese_precedente_id = intval($mese_precedente_dati['id']);
+    $res_var_precedente = $conn->query("SELECT SUM(importo) AS totale FROM spese_variabili WHERE mese_id = $mese_precedente_id");
+    $tot_var_precedente = floatval($res_var_precedente->fetch_assoc()['totale'] ?? 0);
+}
 
 ?>
 <!DOCTYPE html>
@@ -93,6 +107,34 @@ $mese_dati = $query_mese->get_result()->fetch_assoc();
                 <span>Budget Max (<?php echo number_format($budget_variabile_iniziale, 2, ',', '.'); ?>€)</span>
             </div>
         </div>
+
+        <?php if ($tot_var_precedente !== null):
+            $differenza_mensile = $tot_var - $tot_var_precedente;
+        ?>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 class="text-base font-bold text-gray-700 mb-1">Confronto mensile</h3>
+            <p class="text-xs text-gray-400 mb-4">
+                Spese variabili rispetto a <?php echo $mesi_it[$mese_precedente] . " " . $anno_precedente; ?>
+            </p>
+
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <p class="text-xs text-gray-400">Mese precedente</p>
+                    <p class="text-lg font-bold text-gray-700"><?php echo number_format($tot_var_precedente, 2, ',', '.'); ?> €</p>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <p class="text-xs text-gray-400">Mese corrente</p>
+                    <p class="text-lg font-bold text-gray-700"><?php echo number_format($tot_var, 2, ',', '.'); ?> €</p>
+                </div>
+            </div>
+
+            <p class="mt-4 text-sm font-semibold <?php echo $differenza_mensile <= 0 ? 'text-green-600' : 'text-red-600'; ?>">
+                <?php echo $differenza_mensile <= 0 ? 'Riduzione: ' : 'Aumento: +'; ?>
+                <?php echo number_format(abs($differenza_mensile), 2, ',', '.'); ?> €
+            </p>
+        </div>
+        <?php endif; ?>
+
         <?php endif; ?>
 
 
