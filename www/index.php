@@ -287,7 +287,7 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
 
             <div class="space-y-6">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">📌 Spese Fisse Mensili (Già detratte)</h3>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3">📌 Spese Fisse (già considerate nel budget)</h3>
                     <ul class="divide-y divide-gray-100">
                         <?php
                         $spese_fisse_query = $conn->query("SELECT * FROM spese_fisse WHERE mese_id = $mese_id");
