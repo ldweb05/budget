@@ -125,3 +125,15 @@ Sono state completate le seguenti modifiche:
 6. controllare che il diff contenga solo la modifica prevista;
 7. creare il commit;
 8. verificare che il working tree sia pulito.
+## Percorso repository locale
+
+Il repository locale del progetto Budget v2 si trova in:
+
+/home/lorenzo/budget
+
+Prima di iniziare qualsiasi attività verificare di trovarsi nella directory corretta:
+
+cd /home/lorenzo/budget
+git status
+
+Il workflow operativo deve essere eseguito esclusivamente all'interno di questo repository.
