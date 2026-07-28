@@ -116,6 +116,13 @@ Separazione area amministrativa e area utente completata:
 - protetta la dashboard finanziaria impedendo l'accesso agli amministratori;
 - verificate sintassi, redirect e separazione delle autorizzazioni.
 
+Isolamento completo dei dati finanziari completato:
+
+- ogni tabella finanziaria è associata all'utente proprietario;
+- tutte le query devono filtrare tramite `utente_id` oppure tramite join con `mesi` e verifica di `utente_id`;
+- l'eliminazione di un utente elimina automaticamente tutti i suoi dati finanziari (`ON DELETE CASCADE`);
+- la ricreazione dello stesso username non deve mai rendere visibili dati precedenti.
+
 Prossimi interventi:
 
 - aggiungere la possibilità di visualizzare/nascondere la password nella schermata di login;

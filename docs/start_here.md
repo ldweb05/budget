@@ -100,6 +100,13 @@ L'applicazione è suddivisa in due aree completamente separate.
 
 L'autenticazione reindirizza automaticamente ogni utente nell'area corretta in base al ruolo.
 
+## Isolamento dei dati
+
+- ogni utente vede esclusivamente i propri mesi, spese, preferiti e movimenti del Salvadanaio;
+- tutti i dati finanziari sono associati all'identificativo interno dell'utente;
+- eliminando un utente vengono eliminati automaticamente anche tutti i suoi dati finanziari;
+- ricreando in futuro lo stesso username viene creato un nuovo utente senza alcuno storico precedente.
+
 ---
 
 Questo documento è il punto di ingresso dell'intero progetto.
