@@ -65,13 +65,29 @@ if (isset($_POST['login'])) {
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
-                <input type="password" name="password" required class="w-full px-3 py-2.5 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="relative">
+                    <input id="password" type="password" name="password" required class="w-full px-3 py-2.5 pr-10 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" id="togglePassword" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                        👁️
+                    </button>
+                </div>
             </div>
             <button type="submit" name="login" class="w-full bg-[#12A0D7] text-white font-semibold py-3 rounded-xl text-sm shadow-sm hover:opacity-95 transition mt-2">
                 Accedi
             </button>
         </form>
     </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('togglePassword');
+
+        togglePassword.addEventListener('click', function () {
+            const tipo = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = tipo;
+            this.textContent = tipo === 'password' ? '👁️' : '🙈';
+        });
+    </script>
 
 </body>
 </html>
