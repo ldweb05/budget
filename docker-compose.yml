@@ -21,6 +21,10 @@ services:
       - "8085:80"
     volumes:
       - ./www:/var/www/html
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       - db
     command: sh -c "docker-php-ext-install mysqli && apache2-foreground"
