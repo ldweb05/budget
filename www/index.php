@@ -275,8 +275,14 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     <form method="POST" class="space-y-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <div class="flex gap-2">
-                            <input type="text" name="descrizione" placeholder="Es. Supermercato" required autofocus class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <input type="number" step="0.01" name="importo" placeholder="€" required class="w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="descrizione-spesa" name="descrizione" placeholder="Es. Supermercato" required autofocus class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="importo-spesa" step="0.01" name="importo" placeholder="€" required class="w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div id="preferiti-spese" class="flex flex-wrap gap-2"></div>
+                            <button type="button" id="salva-preferito" class="shrink-0 text-xs font-semibold text-[#008080] hover:underline">
+                                ☆ Salva preferito
+                            </button>
                         </div>
                         <button type="submit" name="add_variabile" class="w-full bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm hover:bg-[#006666] transition">
                             Aggiungi Spesa
@@ -382,6 +388,65 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
     </main>
 
     <script>
+        const descrizioneSpesa = document.getElementById('descrizione-spesa');
+        const importoSpesa = document.getElementById('importo-spesa');
+        const salvaPreferito = document.getElementById('salva-preferito');
+        const contenitorePreferiti = document.getElementById('preferiti-spese');
+        const chiavePreferiti = 'budget_preferiti_spese';
+
+        function leggiPreferiti() {
+            try {
+                return JSON.parse(localStorage.getItem(chiavePreferiti)) || [];
+            } catch (errore) {
+                return [];
+            }
+        }
+
+        function mostraPreferiti() {
+            if (!contenitorePreferiti) {
+                return;
+            }
+
+            contenitorePreferiti.innerHTML = '';
+
+            leggiPreferiti().forEach(function (preferito) {
+                const pulsante = document.createElement('button');
+                pulsante.type = 'button';
+                pulsante.className = 'px-2.5 py-1 rounded-full bg-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-200';
+                pulsante.textContent = preferito.descrizione;
+
+                pulsante.addEventListener('click', function () {
+                    descrizioneSpesa.value = preferito.descrizione;
+                    importoSpesa.value = preferito.importo;
+                    importoSpesa.focus();
+                    importoSpesa.select();
+                });
+
+                contenitorePreferiti.appendChild(pulsante);
+            });
+        }
+
+        if (salvaPreferito) {
+            salvaPreferito.addEventListener('click', function () {
+                const descrizione = descrizioneSpesa.value.trim();
+                const importo = importoSpesa.value;
+
+                if (!descrizione || !importo) {
+                    return;
+                }
+
+                const preferiti = leggiPreferiti().filter(function (preferito) {
+                    return preferito.descrizione.toLowerCase() !== descrizione.toLowerCase();
+                });
+
+                preferiti.unshift({ descrizione: descrizione, importo: importo });
+                localStorage.setItem(chiavePreferiti, JSON.stringify(preferiti.slice(0, 5)));
+                mostraPreferiti();
+            });
+        }
+
+        mostraPreferiti();
+
         const ricercaSpese = document.getElementById('ricerca-spese');
 
         if (ricercaSpese) {
