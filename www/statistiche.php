@@ -121,9 +121,8 @@ $mese_dati = $query_mese->get_result()->fetch_assoc();
                     $tv = $rv->fetch_assoc()['totale'] ?? 0;
 
                     $entrata = $m['entrata'];
-                    $netto = $entrata - $tf;
-                    $risp = $netto * ($m['percentuale_risparmio'] / 100);
-                    $b_iniziale = $netto - $risp;
+                    $risp = $entrata * ($m['percentuale_risparmio'] / 100);
+                    $b_iniziale = $entrata - $risp - $tf;
                     $b_restante = $b_iniziale - $tv;
 
                     // Calcolo percentuale di avanzo per la barra
