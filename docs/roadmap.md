@@ -81,7 +81,7 @@ Completato:
 Da completare successivamente:
 
 - Possibilità di visualizzare/nascondere la password nella schermata di login.
-- ✅ Miglioramento responsive per utilizzo da smartphone e tablet.
+
 
 ## Isolamento dati multiutente
 
@@ -91,6 +91,7 @@ Completato:
 - ✅ Ogni utente vede esclusivamente i propri mesi, spese, preferiti e Salvadanaio.
 - ✅ Eliminando un utente vengono eliminati automaticamente tutti i suoi dati finanziari (ON DELETE CASCADE).
 - ✅ La ricreazione di un utente con lo stesso username genera un ambiente completamente vuoto.
+- ✅ Miglioramento responsive per utilizzo da smartphone e tablet.
 
 ---
 
