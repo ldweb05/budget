@@ -275,7 +275,7 @@ $elenco_mesi_db = $conn->query("SELECT nome, anno FROM mesi ORDER BY anno DESC, 
                     <form method="POST" class="space-y-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <div class="flex gap-2">
-                            <input type="text" name="descrizione" placeholder="Es. Supermercato" required class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="text" name="descrizione" placeholder="Es. Supermercato" required autofocus class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <input type="number" step="0.01" name="importo" placeholder="€" required class="w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                         <button type="submit" name="add_variabile" class="w-full bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm hover:bg-[#006666] transition">
