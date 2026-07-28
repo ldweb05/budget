@@ -93,19 +93,30 @@ Versione 2.3
 - Statistiche completate.
 - Confronto mensile completato.
 
+Gestione utenti e autenticazione tramite database completata:
+
+- creata la tabella `utenti`;
+- password memorizzate esclusivamente tramite `password_hash()`;
+- credenziali verificate tramite `password_verify()`;
+- introdotti i ruoli `admin` e `user`;
+- cambio password dell'utente autenticato;
+- gestione amministrativa di utenti, ruoli e stato attivo;
+- autenticazione migrata dal file `.env` al database;
+- eliminata la modifica del file `.env` dalla dashboard;
+- aggiunta la funzionalità di logout.
+
 Prossimo intervento:
 
-- Gestione utenti e autenticazione tramite database:
-  - creare la tabella `utenti`;
-  - memorizzare esclusivamente password cifrate tramite `password_hash()`;
-  - verificare le credenziali tramite `password_verify()`;
-  - introdurre i ruoli `admin` e `user`;
-  - consentire all'utente di modificare la propria password;
-  - consentire all'amministratore di gestire utenti, ruoli e stato attivo;
-  - migrare l'autenticazione attuale dal file `.env` al database;
-  - rimuovere la modifica del file `.env` dalla dashboard;
-  - visualizzazione/nascondi password nella schermata di login;
-  - miglioramento responsive per smartphone e tablet.
+- separare completamente l'area amministrativa dalla dashboard del budget;
+- creare `admin.php` come pagina dedicata esclusivamente alla gestione utenti;
+- reindirizzare gli utenti con ruolo `admin` da `login.php` verso `admin.php`;
+- mantenere `index.php` riservato agli utenti con ruolo `user`;
+- impedire agli amministratori di visualizzare mesi, spese, grafici e Salvadanaio;
+- mostrare nell'area admin esclusivamente elenco utenti, creazione, modifica, attivazione, disattivazione, eliminazione e logout;
+- proteggere `admin.php` consentendo l'accesso esclusivamente agli amministratori;
+- proteggere le pagine finanziarie impedendo l'accesso agli amministratori;
+- verificare separatamente login, redirect, autorizzazioni e logout per entrambi i ruoli;
+- completare successivamente visualizzazione/nascondi password e miglioramento responsive.
 
 
 Sono state completate le seguenti modifiche:

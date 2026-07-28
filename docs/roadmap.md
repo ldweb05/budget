@@ -53,13 +53,33 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 
 ## Gestione utenti e autenticazione
 
-- Tabella `utenti` nel database.
-- Password memorizzate con `password_hash()`.
-- Autenticazione tramite `password_verify()`.
-- Ruoli `admin` e `user`.
-- Cambio password dell'utente autenticato.
-- Gestione utenti da parte dell'amministratore.
-- Eliminazione della dipendenza dal file `.env` per il login.
+Completato:
+
+- ✅ Tabella `utenti` nel database.
+- ✅ Password memorizzate con `password_hash()`.
+- ✅ Autenticazione tramite `password_verify()`.
+- ✅ Ruoli `admin` e `user`.
+- ✅ Cambio password dell'utente autenticato.
+- ✅ Gestione utenti da parte dell'amministratore.
+- ✅ Eliminazione della dipendenza dal file `.env` per il login.
+- ✅ Logout dell'utente autenticato.
+
+## Separazione area admin e area utente
+
+Prossimo intervento:
+
+- Creare `admin.php` come dashboard amministrativa dedicata.
+- Reindirizzare gli amministratori da `login.php` verso `admin.php`.
+- Mantenere `index.php` riservato agli utenti con ruolo `user`.
+- Impedire agli amministratori di accedere ai dati finanziari.
+- Mostrare nell'area admin esclusivamente elenco utenti e relative azioni.
+- Consentire creazione, modifica, attivazione, disattivazione ed eliminazione utenti.
+- Proteggere `admin.php` consentendo l'accesso esclusivamente agli amministratori.
+- Proteggere Dashboard, Grafici e Salvadanaio consentendo l'accesso esclusivamente agli utenti.
+- Verificare login, redirect, autorizzazioni e logout per entrambi i ruoli.
+
+Da completare successivamente:
+
 - Possibilità di visualizzare/nascondere la password nella schermata di login.
 - Miglioramento responsive per utilizzo da smartphone e tablet.
 
