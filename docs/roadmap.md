@@ -106,3 +106,50 @@ Completato:
 ---
 
 La roadmap è un documento vivo e potrà essere aggiornata nel tempo mantenendo la filosofia del progetto.
+
+---
+
+# Nuova funzionalità proposta — Spese programmate
+
+## Obiettivo
+
+Introdurre una nuova categoria distinta da spese fisse e spese variabili.
+
+Le **Spese programmate** rappresentano impegni economici futuri già conosciuti che devono essere ricordati automaticamente dall'applicazione.
+
+Esempi:
+
+- acquisto Amazon in più rate;
+- Agenzia delle Entrate;
+- finanziamenti;
+- rate del dentista;
+- qualsiasi pagamento futuro già pianificato.
+
+## Filosofia
+
+Le spese programmate **non sono spese fisse**, perché hanno una durata limitata.
+
+Non sono nemmeno spese variabili, perché sono già conosciute in anticipo.
+
+L'obiettivo è evitare che l'utente dimentichi pagamenti futuri che influenzano il budget.
+
+## Funzionamento previsto
+
+L'utente crea un unico piano indicando:
+
+- descrizione;
+- importo totale;
+- numero rate;
+- importo rata;
+- frequenza;
+- data della prima scadenza.
+
+L'applicazione genera automaticamente le scadenze future.
+
+Quando inizia un nuovo mese, la rata prevista entra automaticamente nel budget del mese.
+
+L'utente dovrà solamente confermare il pagamento.
+
+## Beneficio
+
+Il budget giornaliero terrà conto anche degli impegni futuri già conosciuti, rendendo la previsione di spesa più affidabile.

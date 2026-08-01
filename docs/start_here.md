@@ -31,10 +31,15 @@ L'applicazione deve:
 
 ## 1. Salvadanaio
 
-Una percentuale configurabile di ogni nuova entrata viene accantonata automaticamente.
+Una percentuale configurabile e modificabile di ogni nuova entrata viene accantonata automaticamente.
 
 Il Salvadanaio:
 
+- riceve automaticamente una quota di ogni entrata;
+- può ricevere versamenti manuali aggiuntivi;
+- consente prelievi manuali;
+- copre automaticamente gli imprevisti quando il budget mensile viene superato;
+- gli imprevisti vengono registrati come movimento permanente del Salvadanaio;
 - non partecipa al budget giornaliero;
 - non viene mostrato nella schermata principale;
 - è visibile solo entrando nella relativa sezione.
@@ -82,6 +87,9 @@ Ordine di lettura consigliato:
 5. roadmap.md
 6. handover_operativo.md
 7. README.md
+8. prossimo_passo.md
+
+> **Nota:** prima di iniziare qualsiasi sviluppo leggere sempre anche `docs/prossimo_passo.md`, che contiene lo stato corrente del progetto, il workflow operativo e il punto di ripartenza.
 
 # Architettura corrente
 

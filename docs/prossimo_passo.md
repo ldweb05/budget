@@ -5,24 +5,86 @@
 Completato:
 
 - collegamento dei movimenti automatici del Salvadanaio al mese (`mese_id`);
-- eliminazione dei duplicati tramite aggiornamento del movimento esistente;
-- creazione automatica della quota del Salvadanaio alla creazione del mese.
+- gestione separata di versamenti e prelievi automatici tramite chiave univoca (`mese_id`, `tipo`);
+- aggiornamento automatico della quota del Salvadanaio quando cambiano entrata o percentuale;
+- modifica dell'entrata mensile;
+- modifica della percentuale del Salvadanaio;
+- validazione della percentuale (0-100%);
+- gestione degli sforamenti con visualizzazione del budget negativo;
+- registrazione automatica degli imprevisti nel Salvadanaio;
+- versamenti manuali aggiuntivi indipendenti dalla percentuale;
+- prelievi manuali dal Salvadanaio;
+- isolamento dei dati per utente.
 
 ## Prossimo intervento
 
-1. Consentire all'utente di modificare la percentuale destinata al Salvadanaio.
-2. Consentire all'utente di modificare l'entrata mensile mantenendo sincronizzata la quota del Salvadanaio.
-3. Quando il budget disponibile diventa negativo:
-   - mostrare il budget giornaliero in rosso con segno "-";
-   - scalare automaticamente l'importo negativo dal Salvadanaio;
-   - registrare il movimento come prelievo automatico collegato al mese.
+### Nuova funzionalità: Spese programmate
 
-## Verifiche previste
+Introdurre una nuova categoria distinta da spese fisse e spese variabili.
 
-- php -l nel container Docker;
-- test funzionali della creazione mese;
-- test aggiornamento entrata;
-- test modifica percentuale;
+Le Spese programmate rappresentano impegni economici futuri già conosciuti (ad esempio Amazon a rate, Agenzia delle Entrate, finanziamenti, dentista, ecc.) che devono essere ricordati automaticamente dall'applicazione.
+
+Obiettivi:
+
+- creare un piano di pagamento una sola volta;
+- generare automaticamente le rate future;
+- inserire automaticamente la rata nel budget del mese di competenza;
+- consentire all'utente di confermare l'avvenuto pagamento;
+- evitare dimenticanze e rendere il budget giornaliero ancora più realistico.
+
+Al termine dello sviluppo eseguire:
+
+- verifiche funzionali;
+- aggiornamento documentazione;
+- `git diff --check`;
+- `git diff`;
+- `git status`;
+- richiesta di conferma prima del commit.
+
+## Ambiente operativo
+
+Servizi Docker Compose:
+
+- PHP: `web`
+- Database MariaDB: `db`
+
+Container:
+
+- `budget-web`
+- `budget-db`
+
+Tutti i comandi devono iniziare con:
+
+cd ~/budget &&
+
+PHP deve essere eseguito esclusivamente nel servizio Docker `web`.
+
+MariaDB deve essere utilizzato esclusivamente nel servizio Docker `db` tramite il client `mariadb`.
+
+Non utilizzare PHP o database installati sul Raspberry.
+
+## Workflow operativo
+
+1. Analisi mirata.
+2. Lettura di un solo file.
+3. Individuazione della sola modifica necessaria.
+4. Patch tramite script Python.
+5. Nessuna modifica manuale.
+6. Verifica PHP nel container.
+7. Test pertinenti.
+8. Aggiornamento documentazione.
+9. git diff --check
+10. git diff
+11. git status
+12. Richiesta conferma.
+13. Commit solo dopo conferma.
+
+## Verifiche finali
+
+- php -l nel container web;
+- test funzionali;
 - git diff --check;
 - git diff;
 - git status.
+
+Nota: il progetto non dispone di test automatici.

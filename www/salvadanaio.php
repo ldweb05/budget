@@ -3,6 +3,7 @@ include 'config.php';
 controlla_autenticazione();
 include 'db.php';
 date_default_timezone_set('Europe/Rome');
+$utente_id = intval($_SESSION['utente_id'] ?? 0);
 
 // Azione: Prelievo Volontario Manuale
 if (isset($_POST['prelievo_manuale'])) {
@@ -11,8 +12,8 @@ if (isset($_POST['prelievo_manuale'])) {
     $data_oggi = date('Y-m-d');
 
     if ($importo > 0 && !empty($causale)) {
-        $stmt = $conn->prepare("INSERT INTO fondo_risparmio (importo, tipo, causale, data_movimento) VALUES (?, 'prelievo', ?, ?)");
-        $stmt->bind_param("dss", $importo, $causale, $data_oggi);
+        $stmt = $conn->prepare("INSERT INTO fondo_risparmio (utente_id, importo, tipo, causale, data_movimento) VALUES (?, ?, 'prelievo', ?, ?)");
+        $stmt->bind_param("idss", $utente_id, $importo, $causale, $data_oggi);
         $stmt->execute();
     }
     header("Location: salvadanaio.php");
@@ -26,8 +27,8 @@ if (isset($_POST['versamento_manuale'])) {
     $data_oggi = date('Y-m-d');
 
     if ($importo > 0 && !empty($causale)) {
-        $stmt = $conn->prepare("INSERT INTO fondo_risparmio (importo, tipo, causale, data_movimento) VALUES (?, 'versamento', ?, ?)");
-        $stmt->bind_param("dss", $importo, $causale, $data_oggi);
+        $stmt = $conn->prepare("INSERT INTO fondo_risparmio (utente_id, importo, tipo, causale, data_movimento) VALUES (?, ?, 'versamento', ?, ?)");
+        $stmt->bind_param("idss", $utente_id, $importo, $causale, $data_oggi);
         $stmt->execute();
     }
     header("Location: salvadanaio.php");
@@ -35,11 +36,17 @@ if (isset($_POST['versamento_manuale'])) {
 }
 
 // Calcolo del saldo totale del fondo
-$res_versamenti = $conn->query("SELECT SUM(importo) as totale FROM fondo_risparmio WHERE tipo = 'versamento'");
-$tot_versamenti = $res_versamenti->fetch_assoc()['totale'] ?? 0;
+$stmt_versamenti = $conn->prepare("SELECT SUM(importo) AS totale FROM fondo_risparmio WHERE utente_id = ? AND tipo = 'versamento'");
+$stmt_versamenti->bind_param("i", $utente_id);
+$stmt_versamenti->execute();
+$tot_versamenti = $stmt_versamenti->get_result()->fetch_assoc()['totale'] ?? 0;
+$stmt_versamenti->close();
 
-$res_prelievi = $conn->query("SELECT SUM(importo) as totale FROM fondo_risparmio WHERE tipo = 'prelievo'");
-$tot_prelievi = $res_prelievi->fetch_assoc()['totale'] ?? 0;
+$stmt_prelievi = $conn->prepare("SELECT SUM(importo) AS totale FROM fondo_risparmio WHERE utente_id = ? AND tipo = 'prelievo'");
+$stmt_prelievi->bind_param("i", $utente_id);
+$stmt_prelievi->execute();
+$tot_prelievi = $stmt_prelievi->get_result()->fetch_assoc()['totale'] ?? 0;
+$stmt_prelievi->close();
 
 $saldo_fondo = $tot_versamenti - $tot_prelievi;
 ?>
@@ -100,7 +107,10 @@ $saldo_fondo = $tot_versamenti - $tot_prelievi;
                 <h3 class="text-sm font-bold text-gray-700 mb-3">📜 Registro Storico dei Risparmi</h3>
                 <ul class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
                     <?php
-                    $movimenti = $conn->query("SELECT * FROM fondo_risparmio ORDER BY id DESC");
+                    $movimenti_stmt = $conn->prepare("SELECT * FROM fondo_risparmio WHERE utente_id = ? ORDER BY id DESC");
+                    $movimenti_stmt->bind_param("i", $utente_id);
+                    $movimenti_stmt->execute();
+                    $movimenti = $movimenti_stmt->get_result();
                     if ($movimenti->num_rows == 0):
                         echo "<p class='text-xs text-gray-400 py-4 text-center'>Nessun movimento registrato.</p>";
                     endif;

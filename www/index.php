@@ -101,28 +101,25 @@ if (isset($_POST['crea_mese'])) {
     exit;
 }
 
-// Azione: Modifica Budget Entrata + Risparmio Automatico del 15% sul NETTO
+// Azione: Modifica Entrata e Percentuale + Sincronizzazione Risparmio Automatico
 if (isset($_POST['update_budget'])) {
     $mese_id = intval($_POST['mese_id']);
     $nuova_entrata = floatval($_POST['nuova_entrata']);
+    $percentuale_risparmio = floatval($_POST['nuova_percentuale']);
     $data_oggi = date('Y-m-d');
-    
-    // 1. Aggiorna l'entrata mensile normalmente
-    $stmt = $conn->prepare("UPDATE mesi SET entrata = ? WHERE id = ? AND utente_id = ?");
-    $stmt->bind_param("dii", $nuova_entrata, $mese_id, $utente_id);
+
+    if ($percentuale_risparmio < 0 || $percentuale_risparmio > 100) {
+        header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+        exit;
+    }
+
+    // 1. Aggiorna entrata e percentuale del mese
+    $stmt = $conn->prepare("UPDATE mesi SET entrata = ?, percentuale_risparmio = ? WHERE id = ? AND utente_id = ?");
+    $stmt->bind_param("ddii", $nuova_entrata, $percentuale_risparmio, $mese_id, $utente_id);
     $stmt->execute();
     $stmt->close();
 
-    // 2. Recupera la percentuale di risparmio configurata per il mese
-    $stmt_percentuale = $conn->prepare("SELECT percentuale_risparmio FROM mesi WHERE id = ? AND utente_id = ?");
-    $stmt_percentuale->bind_param("ii", $mese_id, $utente_id);
-    $stmt_percentuale->execute();
-    $percentuale_risparmio = floatval(
-        $stmt_percentuale->get_result()->fetch_assoc()['percentuale_risparmio'] ?? 15
-    );
-    $stmt_percentuale->close();
-
-    // 3. Calcola il risparmio sull'entrata totale, prima di qualsiasi spesa
+    // 2. Calcola il risparmio sull'entrata totale, prima di qualsiasi spesa
     $quota_salvadanaio = $nuova_entrata * ($percentuale_risparmio / 100);
 
     if ($quota_salvadanaio > 0) {
@@ -228,10 +225,68 @@ if (isset($_POST['add_variabile'])) {
     $data_oggi = date('Y-m-d');
 
     if ($importo > 0 && !empty($desc)) {
-        $ins_var = $conn->prepare("INSERT INTO spese_variabili (mese_id, descrizione, importo, data_spesa) SELECT id, ?, ?, ? FROM mesi WHERE id = ? AND utente_id = ?");
-        $ins_var->bind_param("sdsii", $desc, $importo, $data_oggi, $mese_id, $utente_id);
-        $ins_var->execute();
+        $stmt_budget = $conn->prepare(
+            "SELECT
+                m.entrata,
+                m.percentuale_risparmio,
+                COALESCE((SELECT SUM(sf.importo) FROM spese_fisse sf WHERE sf.mese_id = m.id), 0) AS totale_fisse,
+                COALESCE((SELECT SUM(sv.importo) FROM spese_variabili sv WHERE sv.mese_id = m.id), 0) AS totale_variabili
+             FROM mesi m
+             WHERE m.id = ? AND m.utente_id = ?"
+        );
+        $stmt_budget->bind_param("ii", $mese_id, $utente_id);
+        $stmt_budget->execute();
+        $dati_budget = $stmt_budget->get_result()->fetch_assoc();
+        $stmt_budget->close();
+
+        if ($dati_budget) {
+            $entrata = floatval($dati_budget['entrata']);
+            $percentuale = floatval($dati_budget['percentuale_risparmio']);
+            $totale_fisse = floatval($dati_budget['totale_fisse']);
+            $totale_variabili = floatval($dati_budget['totale_variabili']);
+            $quota_risparmio = $entrata * ($percentuale / 100);
+
+            $budget_prima = $entrata - $quota_risparmio - $totale_fisse - $totale_variabili;
+
+            $ins_var = $conn->prepare(
+                "INSERT INTO spese_variabili (mese_id, descrizione, importo, data_spesa)
+                 VALUES (?, ?, ?, ?)"
+            );
+            $ins_var->bind_param("isds", $mese_id, $desc, $importo, $data_oggi);
+            $ins_var->execute();
+            $ins_var->close();
+
+            $budget_dopo = $budget_prima - $importo;
+            $sforamento_prima = max(0, -$budget_prima);
+            $sforamento_dopo = max(0, -$budget_dopo);
+            $nuovo_prelievo = $sforamento_dopo - $sforamento_prima;
+
+            if ($nuovo_prelievo > 0) {
+                $causale_automatica = "Imprevisti - " . $mese_display;
+
+                $stmt_prelievo = $conn->prepare(
+                    "INSERT INTO fondo_risparmio
+                        (utente_id, mese_id, importo, tipo, causale, data_movimento)
+                     VALUES (?, ?, ?, 'prelievo', ?, ?)
+                     ON DUPLICATE KEY UPDATE
+                        importo = importo + VALUES(importo),
+                        causale = VALUES(causale),
+                        data_movimento = VALUES(data_movimento)"
+                );
+                $stmt_prelievo->bind_param(
+                    "iidss",
+                    $utente_id,
+                    $mese_id,
+                    $nuovo_prelievo,
+                    $causale_automatica,
+                    $data_oggi
+                );
+                $stmt_prelievo->execute();
+                $stmt_prelievo->close();
+            }
+        }
     }
+
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
 }
@@ -362,7 +417,9 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         } else {
             $giorni_rimasti = 1; // Mese passato completato, mostra il totale rimasto finale
         }
-        $budget_giornaliero = $budget_restante_mese / $giorni_rimasti;
+        $budget_giornaliero = $budget_restante_mese < 0
+            ? $budget_restante_mese
+            : $budget_restante_mese / $giorni_rimasti;
         ?>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -498,11 +555,12 @@ $preferiti_query = $preferiti_stmt->get_result();
             <h3 class="text-sm font-bold text-gray-600 mb-4 flex items-center gap-2">🛠️ Pannello Gestione Mese</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Modifica Entrata Mensile</h4>
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Modifica Entrata e Salvadanaio</h4>
                     <form method="POST" class="flex flex-col sm:flex-row gap-2">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
-                        <input type="number" step="0.01" name="nuova_entrata" value="<?php echo $entrata_totale; ?>" class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" name="update_budget" class="bg-[#12A0D7] text-white text-xs font-semibold px-4 rounded-xl hover:opacity-90 transition">Salva</button>
+                        <input type="number" step="0.01" min="0" name="nuova_entrata" value="<?php echo $entrata_totale; ?>" aria-label="Entrata mensile" class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" step="0.01" min="0" max="100" name="nuova_percentuale" value="<?php echo $percentuale_risparmio; ?>" aria-label="Percentuale Salvadanaio" class="w-full sm:w-28 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" name="update_budget" class="bg-[#12A0D7] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition">Salva</button>
                     </form>
                 </div>
 

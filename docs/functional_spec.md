@@ -33,11 +33,14 @@ Quando viene registrata una nuova entrata:
 
 Il Salvadanaio:
 
-- utilizza una percentuale configurabile;
+- utilizza una percentuale configurabile e modificabile dall'utente;
 - riceve automaticamente una quota di ogni nuova entrata;
-- collega ogni quota automatica al relativo mese;
-- aggiorna la quota esistente quando cambiano entrata o percentuale, senza creare duplicati;
-- rimuove la quota automatica quando il calcolo produce un importo pari a zero;
+- aggiorna automaticamente la quota quando cambiano entrata o percentuale;
+- collega ogni movimento automatico al relativo mese;
+- consente versamenti manuali aggiuntivi indipendenti dalla percentuale;
+- consente prelievi manuali;
+- copre automaticamente gli imprevisti quando il budget mensile viene superato;
+- registra gli imprevisti come movimento permanente del Salvadanaio;
 - non partecipa al budget giornaliero;
 - non viene mostrato nella dashboard principale;
 - è consultabile solo entrando nella sezione dedicata.
@@ -68,9 +71,15 @@ Se una giornata termina con un avanzo:
 
 - il residuo viene redistribuito automaticamente sui giorni rimanenti.
 
-Se una giornata termina con uno sforamento:
+Quando il budget mensile rimane positivo:
 
-- anche l'eccedenza viene redistribuita automaticamente sui giorni rimanenti.
+- eventuali avanzi o piccoli scostamenti vengono redistribuiti automaticamente sui giorni rimanenti.
+
+Quando il budget mensile diventa negativo:
+
+- il budget giornaliero mostra direttamente lo sforamento cumulativo;
+- il valore viene evidenziato in rosso;
+- ogni nuovo imprevisto incrementa automaticamente il movimento "Imprevisti" del Salvadanaio.
 
 Il ricalcolo deve essere completamente automatico.
 
