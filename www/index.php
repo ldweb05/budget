@@ -62,6 +62,28 @@ if (isset($_POST['crea_mese'])) {
     $mese_id = $conn->insert_id;
 
     if ($mese_id > 0) {
+        $stmt_mese = $conn->prepare("SELECT entrata, percentuale_risparmio FROM mesi WHERE id = ? AND utente_id = ?");
+        $stmt_mese->bind_param("ii", $mese_id, $utente_id);
+        $stmt_mese->execute();
+        $mese_creato = $stmt_mese->get_result()->fetch_assoc();
+        $stmt_mese->close();
+
+        $entrata_iniziale = floatval($mese_creato['entrata'] ?? 0);
+        $percentuale_iniziale = floatval($mese_creato['percentuale_risparmio'] ?? 0);
+        $quota_salvadanaio = $entrata_iniziale * ($percentuale_iniziale / 100);
+
+        if ($quota_salvadanaio > 0) {
+            $percentuale_display = rtrim(rtrim(number_format($percentuale_iniziale, 2, ',', ''), '0'), ',');
+            $nome_mese_display = $mesi_it[$m_creare] ?? $m_creare;
+            $causale_automatica = "Risparmio Automatico " . $percentuale_display . "% - " . $nome_mese_display . " " . $a_creare;
+            $data_oggi = date('Y-m-d');
+
+            $ins_fondo = $conn->prepare("INSERT INTO fondo_risparmio (utente_id, mese_id, importo, tipo, causale, data_movimento) VALUES (?, ?, ?, 'versamento', ?, ?)");
+            $ins_fondo->bind_param("iidss", $utente_id, $mese_id, $quota_salvadanaio, $causale_automatica, $data_oggi);
+            $ins_fondo->execute();
+            $ins_fondo->close();
+        }
+
         $spese_standard = [
             ['Condominio', 53.00],
             ['Gas', 60.00],
@@ -110,11 +132,25 @@ if (isset($_POST['update_budget'])) {
         // Genera la causale automatica usando la percentuale configurata
         $causale_automatica = "Risparmio Automatico " . $percentuale_display . "% - " . $mese_display;
 
-        // 4. Inserisce il movimento nel fondo risparmi del salvadanaio
-        $stmt_fondo = $conn->prepare("INSERT INTO fondo_risparmio (utente_id, importo, tipo, causale, data_movimento) VALUES (?, ?, 'versamento', ?, ?)");
-        $stmt_fondo->bind_param("idss", $utente_id, $quota_salvadanaio, $causale_automatica, $data_oggi);
+        // 4. Inserisce o aggiorna il versamento automatico collegato al mese
+        $stmt_fondo = $conn->prepare(
+            "INSERT INTO fondo_risparmio (utente_id, mese_id, importo, tipo, causale, data_movimento)
+             VALUES (?, ?, ?, 'versamento', ?, ?)
+             ON DUPLICATE KEY UPDATE
+                utente_id = VALUES(utente_id),
+                importo = VALUES(importo),
+                tipo = VALUES(tipo),
+                causale = VALUES(causale),
+                data_movimento = VALUES(data_movimento)"
+        );
+        $stmt_fondo->bind_param("iidss", $utente_id, $mese_id, $quota_salvadanaio, $causale_automatica, $data_oggi);
         $stmt_fondo->execute();
         $stmt_fondo->close();
+    } else {
+        $stmt_elimina_fondo = $conn->prepare("DELETE FROM fondo_risparmio WHERE mese_id = ? AND utente_id = ?");
+        $stmt_elimina_fondo->bind_param("ii", $mese_id, $utente_id);
+        $stmt_elimina_fondo->execute();
+        $stmt_elimina_fondo->close();
     }
 
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");

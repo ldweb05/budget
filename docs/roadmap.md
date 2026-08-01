@@ -28,6 +28,8 @@ L'obiettivo è aiutare l'utente a sapere, ogni giorno, quanto può spendere senz
 - Redistribuzione automatica degli avanzi.
 - Redistribuzione automatica degli sforamenti.
 - Dashboard completamente riprogettata.
+- Possibiltà dell'utente di modificare la somma mensile e la oercentuale destinata al salvadanaio
+- Se durante il mese si supera la spesa destinata al mese, la quota giornalera diventa di colore rosso e compare il segno "-" e quella cifra la deve scalare automaticamente dal salvadanaio
 
 ---
 

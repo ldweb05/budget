@@ -18,6 +18,7 @@ Non contiene la filosofia del progetto (vedere `start_here.md`) né le specifich
 - functional_spec.md
 - ui_guidelines.md
 - roadmap.md
+- prossimo_passo.md
 - vision.md
 
 ---

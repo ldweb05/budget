@@ -129,7 +129,12 @@ Prossimi interventi:
 
 
 Sono state completate le seguenti modifiche:
-- miglioramento responsive per smartphone e tablet.
+- miglioramento responsive per smartphone e tablet;
+- aggiunta del versamento automatico nel Salvadanaio durante la creazione di un nuovo mese;
+- calcolo della quota iniziale usando l'entrata e la percentuale effettivamente salvate nella tabella `mesi`;
+- collegamento della quota automatica al mese tramite `fondo_risparmio.mese_id`;
+- aggiornamento della quota mensile senza duplicati tramite vincolo univoco su `mese_id`;
+- aggiunta della migrazione `004_collega_salvadanaio_ai_mesi.sql`.
 
 - calcolo del Salvadanaio tramite percentuale configurata nel database;
 - calcolo del risparmio sull'entrata totale;

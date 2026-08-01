@@ -35,6 +35,9 @@ Il Salvadanaio:
 
 - utilizza una percentuale configurabile;
 - riceve automaticamente una quota di ogni nuova entrata;
+- collega ogni quota automatica al relativo mese;
+- aggiorna la quota esistente quando cambiano entrata o percentuale, senza creare duplicati;
+- rimuove la quota automatica quando il calcolo produce un importo pari a zero;
 - non partecipa al budget giornaliero;
 - non viene mostrato nella dashboard principale;
 - è consultabile solo entrando nella sezione dedicata.
