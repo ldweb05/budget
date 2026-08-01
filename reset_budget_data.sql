@@ -2,5 +2,6 @@ SET FOREIGN_KEY_CHECKS=0;
 TRUNCATE TABLE fondo_risparmio;
 TRUNCATE TABLE spese_variabili;
 TRUNCATE TABLE spese_fisse;
+TRUNCATE TABLE preferiti_spese;
 TRUNCATE TABLE mesi;
 SET FOREIGN_KEY_CHECKS=1;
