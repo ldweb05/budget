@@ -86,10 +86,7 @@ if (isset($_POST['crea_mese'])) {
 
         $spese_standard = [
             ['Condominio', 53.00],
-            ['Gas', 60.00],
-            ['Enel', 60.00],
-            ['Acqua', 15.00],
-            ['Telefono (Casa+Cell)', 35.00]
+            ['Telefono', 25.00]
         ];
         $ins_fissa = $conn->prepare("INSERT INTO spese_fisse (mese_id, descrizione, importo) VALUES (?, ?, ?)");
         foreach ($spese_standard as $spesa) {
@@ -400,7 +397,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $res_var_stmt->bind_param("ii", $mese_id, $utente_id);
         $res_var_stmt->execute();
         $res_var = $res_var_stmt->get_result();
-        $tot_var = $res_var->fetch_assoc()['totale'] ?? 0;
+        $tot_var = floatval($res_var->fetch_assoc()['totale'] ?? 0);
 
         $entrata_totale = $mese_dati['entrata'];
         $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
@@ -414,12 +411,30 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         if ($mese_attivo == $mese_corrente && $anno_attivo == $anno_corrente) {
             $giorno_corrente = date('j');
             $giorni_rimasti = ($giorni_totali_mese - $giorno_corrente) + 1;
+            $data_oggi = date('Y-m-d');
+
+            $res_oggi_stmt = $conn->prepare(
+                "SELECT SUM(sv.importo) AS totale
+                 FROM spese_variabili sv
+                 INNER JOIN mesi m ON m.id = sv.mese_id
+                 WHERE sv.mese_id = ? AND m.utente_id = ? AND sv.data_spesa = ?"
+            );
+            $res_oggi_stmt->bind_param("iis", $mese_id, $utente_id, $data_oggi);
+            $res_oggi_stmt->execute();
+            $tot_var_oggi = floatval($res_oggi_stmt->get_result()->fetch_assoc()['totale'] ?? 0);
+            $res_oggi_stmt->close();
+
+            $tot_var_precedenti = $tot_var - $tot_var_oggi;
+            $budget_disponibile_inizio_oggi = $budget_variabile_iniziale - $tot_var_precedenti;
+            $quota_inizio_oggi = $budget_disponibile_inizio_oggi / $giorni_rimasti;
+
+            $budget_giornaliero = $budget_restante_mese < 0
+                ? $budget_restante_mese
+                : $quota_inizio_oggi - $tot_var_oggi;
         } else {
-            $giorni_rimasti = 1; // Mese passato completato, mostra il totale rimasto finale
+            $giorni_rimasti = 1;
+            $budget_giornaliero = $budget_restante_mese;
         }
-        $budget_giornaliero = $budget_restante_mese < 0
-            ? $budget_restante_mese
-            : $budget_restante_mese / $giorni_rimasti;
         ?>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

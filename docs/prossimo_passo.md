@@ -18,28 +18,17 @@ Completato:
 
 ## Prossimo intervento
 
-### Nuova funzionalità: Spese programmate
+### Validazione del Budget giornaliero
 
-Introdurre una nuova categoria distinta da spese fisse e spese variabili.
+1. Verificare il comportamento al cambio giorno.
+2. Verificare la redistribuzione automatica degli avanzi giornalieri.
+3. Verificare la redistribuzione automatica degli sforamenti giornalieri.
+4. Verificare che il Salvadanaio venga utilizzato esclusivamente quando il budget mensile complessivo diventa negativo.
+5. Confermare la logica con utilizzo reale prima di ulteriori modifiche.
 
-Le Spese programmate rappresentano impegni economici futuri già conosciuti (ad esempio Amazon a rate, Agenzia delle Entrate, finanziamenti, dentista, ecc.) che devono essere ricordati automaticamente dall'applicazione.
+### Prossima evoluzione
 
-Obiettivi:
-
-- creare un piano di pagamento una sola volta;
-- generare automaticamente le rate future;
-- inserire automaticamente la rata nel budget del mese di competenza;
-- consentire all'utente di confermare l'avvenuto pagamento;
-- evitare dimenticanze e rendere il budget giornaliero ancora più realistico.
-
-Al termine dello sviluppo eseguire:
-
-- verifiche funzionali;
-- aggiornamento documentazione;
-- `git diff --check`;
-- `git diff`;
-- `git status`;
-- richiesta di conferma prima del commit.
+Dopo la validazione del Budget giornaliero inizierà lo sviluppo delle **Spese programmate**, dedicate alla gestione di rate e pagamenti futuri pianificati.
 
 ## Ambiente operativo
 
