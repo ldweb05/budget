@@ -31,11 +31,42 @@ Prima di iniziare qualsiasi sviluppo leggere sempre `prossimo_passo.md`.
 
 Componenti principali verificati:
 
-- `www/index.php`: area utente e gestione del budget personale;
+- `www/index.php`: area utente, dashboard e calcolo del budget personale;
+- `www/spese_programmate.php`: gestione di piani, rate, scadenze, pagamenti ed estinzioni anticipate;
 - `www/salvadanaio.php`: saldo, storico e movimenti del Salvadanaio;
 - `www/admin.php`: gestione amministrativa degli utenti;
+- `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
+
+---
+
+# Spese programmate
+
+La funzione utilizza due tabelle dedicate:
+
+- `piani_spese_programmate`, associata direttamente all'utente;
+- `scadenze_spese_programmate`, associata al piano.
+
+Le scadenze possono essere generate automaticamente con frequenza in mesi oppure inserite manualmente.
+
+Le rate vengono considerate nel budget del mese di competenza senza essere duplicate in `spese_variabili`.
+
+La competenza viene determinata così:
+
+- mese della scadenza per le rate non pagate;
+- mese del pagamento per le rate pagate anticipatamente;
+- mese della scadenza originaria per i pagamenti tardivi.
+
+Le operazioni disponibili comprendono:
+
+- creazione del piano;
+- modifica di data e importo delle rate non pagate;
+- pagamento della singola rata;
+- estinzione anticipata delle ultime rate residue;
+- eliminazione completa del piano.
+
+Tutte le query verificano l'appartenenza dei dati all'utente autenticato.
 
 ---
 

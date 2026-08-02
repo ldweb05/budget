@@ -14,21 +14,42 @@ Completato:
 - registrazione automatica degli imprevisti nel Salvadanaio;
 - versamenti manuali aggiuntivi indipendenti dalla percentuale;
 - prelievi manuali dal Salvadanaio;
-- isolamento dei dati per utente.
+- isolamento dei dati per utente;
+- budget giornaliero con redistribuzione degli avanzi e degli sforamenti;
+- Spese programmate con piani e singole scadenze;
+- generazione automatica delle rate con frequenza in mesi;
+- inserimento manuale di scadenze non regolari;
+- integrazione delle rate nel budget del mese di competenza;
+- pagamento della singola rata;
+- modifica di data e importo delle rate non pagate;
+- estinzione anticipata delle ultime rate residue;
+- eliminazione del piano e delle relative scadenze;
+- conservazione della scadenza originaria e della data effettiva di pagamento;
+- isolamento multiutente delle Spese programmate.
 
 ## Prossimo intervento
 
-### Validazione del Budget giornaliero
+### Validazione completa dall'interfaccia delle Spese programmate
 
-1. Verificare il comportamento al cambio giorno.
-2. Verificare la redistribuzione automatica degli avanzi giornalieri.
-3. Verificare la redistribuzione automatica degli sforamenti giornalieri.
-4. Verificare che il Salvadanaio venga utilizzato esclusivamente quando il budget mensile complessivo diventa negativo.
-5. Confermare la logica con utilizzo reale prima di ulteriori modifiche.
+1. Creare un piano automatico mensile.
+2. Creare un piano manuale con scadenze irregolari.
+3. Verificare la visualizzazione delle rate del mese corrente.
+4. Verificare l'impatto delle rate sul budget giornaliero.
+5. Segnare una rata come pagata.
+6. Modificare una rata non pagata.
+7. Estinguere anticipatamente le ultime rate residue.
+8. Eliminare un piano di prova.
+9. Verificare che il Salvadanaio non venga modificato.
+10. Verificare che un utente non possa vedere o modificare dati di altri utenti.
 
-### Prossima evoluzione
+### Successivo intervento concreto
 
-Dopo la validazione del Budget giornaliero inizierà lo sviluppo delle **Spese programmate**, dedicate alla gestione di rate e pagamenti futuri pianificati.
+Dopo la validazione completa:
+
+- correggere esclusivamente eventuali anomalie emerse;
+- eseguire le verifiche finali;
+- controllare i diff;
+- preparare il commit solo dopo conferma esplicita.
 
 ## Ambiente operativo
 

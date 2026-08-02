@@ -49,6 +49,8 @@ Ogni risposta deve sempre riportare:
 - il risparmio viene calcolato sull'entrata totale;
 - le spese fisse sono sempre considerate impegnate;
 - le spese variabili riducono il budget disponibile;
+- le rate programmate del mese sono considerate importi già impegnati;
+- le rate programmate non vengono duplicate tra le spese variabili;
 - il residuo viene distribuito sui giorni rimanenti del mese;
 - una modifica per volta;
 - nessun refactoring o intervento non richiesto.
@@ -123,9 +125,35 @@ Isolamento completo dei dati finanziari completato:
 - l'eliminazione di un utente elimina automaticamente tutti i suoi dati finanziari (`ON DELETE CASCADE`);
 - la ricreazione dello stesso username non deve mai rendere visibili dati precedenti.
 
-Prossimi interventi:
+Spese programmate completate a livello applicativo e database:
 
-- aggiungere la possibilità di visualizzare/nascondere la password nella schermata di login.
+- creata la migrazione `006_create_spese_programmate.sql`;
+- create le tabelle `piani_spese_programmate` e `scadenze_spese_programmate`;
+- aggiunta la pagina `www/spese_programmate.php`;
+- supportate scadenze automatiche con frequenza in mesi;
+- supportate scadenze manuali con date non regolari;
+- aggiunta la visualizzazione delle rate del mese corrente e future;
+- integrate le rate nel budget del mese di competenza;
+- aggiunto il pagamento della singola rata;
+- aggiunta la modifica di data e importo delle rate non pagate;
+- aggiunta l'estinzione anticipata delle ultime rate residue;
+- aggiunta l'eliminazione del piano e delle relative scadenze;
+- mantenute la data di scadenza originaria e la data effettiva di pagamento;
+- mantenuto l'isolamento completo per utente;
+- mantenuta invariata la logica del Salvadanaio.
+
+Regola di competenza delle rate:
+
+- rata non pagata: mese della scadenza;
+- rata pagata anticipatamente: mese del pagamento;
+- rata pagata in ritardo: mese della scadenza originaria.
+
+Prossimo intervento:
+
+- eseguire la validazione completa dall'interfaccia;
+- correggere esclusivamente eventuali anomalie;
+- completare le verifiche finali;
+- richiedere conferma prima del commit.
 
 
 Sono state completate le seguenti modifiche:

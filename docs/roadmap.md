@@ -109,47 +109,44 @@ La roadmap è un documento vivo e potrà essere aggiornata nel tempo mantenendo 
 
 ---
 
-# Nuova funzionalità proposta — Spese programmate
+# Spese programmate
 
-## Obiettivo
+## Stato
 
-Introdurre una nuova categoria distinta da spese fisse e spese variabili.
+Implementazione completata a livello applicativo e database.
 
-Le **Spese programmate** rappresentano impegni economici futuri già conosciuti che devono essere ricordati automaticamente dall'applicazione.
+Sono disponibili:
 
-Esempi:
+- piani associati all'utente autenticato;
+- scadenze automatiche con frequenza espressa in mesi;
+- scadenze manuali con date non regolari;
+- visualizzazione delle rate del mese corrente;
+- visualizzazione delle rate future;
+- integrazione delle rate nel budget del mese di competenza;
+- prevenzione dei duplicati tramite vincolo univoco sul numero della rata nel piano;
+- pagamento della singola rata;
+- modifica di data e importo delle rate non pagate;
+- estinzione anticipata delle ultime rate residue;
+- eliminazione del piano con cancellazione delle relative scadenze;
+- mantenimento della scadenza originaria e della data effettiva di pagamento;
+- isolamento completo per utente.
 
-- acquisto Amazon in più rate;
-- Agenzia delle Entrate;
-- finanziamenti;
-- rate del dentista;
-- qualsiasi pagamento futuro già pianificato.
+## Regola di competenza
 
-## Filosofia
+- rata non pagata: mese della scadenza;
+- rata pagata anticipatamente: mese del pagamento;
+- rata pagata in ritardo: mese della scadenza originaria.
 
-Le spese programmate **non sono spese fisse**, perché hanno una durata limitata.
+Le rate sono considerate importi già impegnati e non vengono duplicate tra le spese variabili.
 
-Non sono nemmeno spese variabili, perché sono già conosciute in anticipo.
+## Vincoli rispettati
 
-L'obiettivo è evitare che l'utente dimentichi pagamenti futuri che influenzano il budget.
+- nessuna trasformazione automatica in spesa fissa;
+- nessuna modifica della logica del Salvadanaio;
+- nessuna modifica delle funzionalità multiutente già validate.
 
-## Funzionamento previsto
+## Verifiche residue
 
-L'utente crea un unico piano indicando:
-
-- descrizione;
-- importo totale;
-- numero rate;
-- importo rata;
-- frequenza;
-- data della prima scadenza.
-
-L'applicazione genera automaticamente le scadenze future.
-
-Quando inizia un nuovo mese, la rata prevista entra automaticamente nel budget del mese.
-
-L'utente dovrà solamente confermare il pagamento.
-
-## Beneficio
-
-Il budget giornaliero terrà conto anche degli impegni futuri già conosciuti, rendendo la previsione di spesa più affidabile.
+- prova completa dall'interfaccia utente;
+- controllo finale dei diff;
+- eventuali rifiniture esclusivamente grafiche o di usabilità.

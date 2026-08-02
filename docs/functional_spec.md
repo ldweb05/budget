@@ -57,6 +57,64 @@ Le spese fisse:
 
 ---
 
+# Spese programmate
+
+Le Spese programmate rappresentano impegni economici futuri già conosciuti ma con durata limitata.
+
+Non sono spese fisse e non vengono trasformate automaticamente in spese fisse.
+
+Ogni piano appartiene all'utente autenticato e contiene:
+
+- descrizione;
+- importo totale;
+- numero delle rate;
+- importo della rata;
+- modalità delle scadenze;
+- eventuale prima scadenza;
+- eventuale frequenza in mesi;
+- note.
+
+Le scadenze possono essere create in due modalità:
+
+- automatica, con generazione periodica mensile, bimestrale, trimestrale o con altra frequenza espressa in mesi;
+- manuale, inserendo direttamente tutte le date reali quando non seguono una periodicità regolare.
+
+Ogni rata è registrata come singola scadenza con:
+
+- numero della rata;
+- importo;
+- data di scadenza;
+- stato pagato;
+- eventuale data di pagamento.
+
+Le rate del mese vengono considerate importi già impegnati e riducono il budget disponibile prima del calcolo del budget giornaliero.
+
+La data di competenza viene determinata così:
+
+- una rata non pagata appartiene al mese della scadenza;
+- una rata pagata anticipatamente appartiene al mese del pagamento;
+- una rata pagata in ritardo resta attribuita al mese della scadenza originaria.
+
+Una rata pagata non viene duplicata tra le spese variabili.
+
+L'utente può:
+
+- segnare una singola rata come pagata;
+- modificare data e importo delle sole rate non pagate;
+- estinguere anticipatamente una o più delle ultime rate residue;
+- eliminare un intero piano e le relative scadenze.
+
+L'estinzione anticipata mantiene le date originariamente programmate nello storico e registra la data effettiva del pagamento.
+
+Le Spese programmate:
+
+- non modificano la percentuale del Salvadanaio;
+- non generano automaticamente movimenti nel Salvadanaio;
+- non alterano la logica delle spese fisse;
+- rispettano sempre l'isolamento dei dati per utente.
+
+---
+
 # Budget giornaliero
 
 Il budget giornaliero rappresenta l'unico importo realmente spendibile.

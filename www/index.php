@@ -227,7 +227,30 @@ if (isset($_POST['add_variabile'])) {
                 m.entrata,
                 m.percentuale_risparmio,
                 COALESCE((SELECT SUM(sf.importo) FROM spese_fisse sf WHERE sf.mese_id = m.id), 0) AS totale_fisse,
-                COALESCE((SELECT SUM(sv.importo) FROM spese_variabili sv WHERE sv.mese_id = m.id), 0) AS totale_variabili
+                COALESCE((SELECT SUM(sv.importo) FROM spese_variabili sv WHERE sv.mese_id = m.id), 0) AS totale_variabili,
+                COALESCE((
+                    SELECT SUM(ssp.importo)
+                    FROM scadenze_spese_programmate ssp
+                    INNER JOIN piani_spese_programmate psp
+                        ON psp.id = ssp.piano_id
+                    WHERE psp.utente_id = m.utente_id
+                      AND YEAR(
+                            CASE
+                                WHEN ssp.pagata = 1
+                                 AND ssp.data_pagamento < ssp.data_scadenza
+                                    THEN ssp.data_pagamento
+                                ELSE ssp.data_scadenza
+                            END
+                          ) = m.anno
+                      AND MONTH(
+                            CASE
+                                WHEN ssp.pagata = 1
+                                 AND ssp.data_pagamento < ssp.data_scadenza
+                                    THEN ssp.data_pagamento
+                                ELSE ssp.data_scadenza
+                            END
+                          ) = MONTH(STR_TO_DATE(m.nome, '%M'))
+                ), 0) AS totale_programmate
              FROM mesi m
              WHERE m.id = ? AND m.utente_id = ?"
         );
@@ -241,9 +264,17 @@ if (isset($_POST['add_variabile'])) {
             $percentuale = floatval($dati_budget['percentuale_risparmio']);
             $totale_fisse = floatval($dati_budget['totale_fisse']);
             $totale_variabili = floatval($dati_budget['totale_variabili']);
+            $totale_programmate = floatval(
+                $dati_budget['totale_programmate']
+            );
             $quota_risparmio = $entrata * ($percentuale / 100);
 
-            $budget_prima = $entrata - $quota_risparmio - $totale_fisse - $totale_variabili;
+            $budget_prima =
+                $entrata
+                - $quota_risparmio
+                - $totale_fisse
+                - $totale_programmate
+                - $totale_variabili;
 
             $ins_var = $conn->prepare(
                 "INSERT INTO spese_variabili (mese_id, descrizione, importo, data_spesa)
@@ -352,6 +383,9 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                 <a href="statistiche.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     📊 Grafici
                 </a>
+                <a href="spese_programmate.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
+                    📅 Programmate
+                </a>
                 <a href="salvadanaio.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     🐷 Salvadanaio
                 </a>
@@ -399,11 +433,55 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $res_var = $res_var_stmt->get_result();
         $tot_var = floatval($res_var->fetch_assoc()['totale'] ?? 0);
 
+        $numero_mese_attivo = intval(
+            date('n', strtotime("1 $mese_attivo $anno_attivo"))
+        );
+
+        $res_programmate_stmt = $conn->prepare(
+            "SELECT COALESCE(SUM(s.importo), 0) AS totale
+             FROM scadenze_spese_programmate s
+             INNER JOIN piani_spese_programmate p
+                ON p.id = s.piano_id
+             WHERE p.utente_id = ?
+               AND YEAR(
+                    CASE
+                        WHEN s.pagata = 1
+                         AND s.data_pagamento < s.data_scadenza
+                            THEN s.data_pagamento
+                        ELSE s.data_scadenza
+                    END
+               ) = ?
+               AND MONTH(
+                    CASE
+                        WHEN s.pagata = 1
+                         AND s.data_pagamento < s.data_scadenza
+                            THEN s.data_pagamento
+                        ELSE s.data_scadenza
+                    END
+               ) = ?"
+        );
+        $res_programmate_stmt->bind_param(
+            "iii",
+            $utente_id,
+            $anno_attivo,
+            $numero_mese_attivo
+        );
+        $res_programmate_stmt->execute();
+        $tot_programmate = floatval(
+            $res_programmate_stmt
+                ->get_result()
+                ->fetch_assoc()['totale'] ?? 0
+        );
+        $res_programmate_stmt->close();
+
         $entrata_totale = $mese_dati['entrata'];
         $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
         $quota_risparmio = $entrata_totale * ($percentuale_risparmio / 100);
         $entrata_dopo_risparmio = $entrata_totale - $quota_risparmio;
-        $budget_variabile_iniziale = $entrata_dopo_risparmio - $tot_fisse;
+        $budget_variabile_iniziale =
+            $entrata_dopo_risparmio
+            - $tot_fisse
+            - $tot_programmate;
         $budget_restante_mese = $budget_variabile_iniziale - $tot_var;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
@@ -449,6 +527,12 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                     </div>
                     <p class="text-xs text-gray-500 leading-relaxed">
                         Disponibilità rimasta: <span class="font-semibold"><?php echo number_format($budget_restante_mese, 2, ',', '.'); ?>€</span>
+                        <?php if ($tot_programmate > 0): ?>
+                            <br>Rate programmate del mese:
+                            <span class="font-semibold">
+                                <?php echo number_format($tot_programmate, 2, ',', '.'); ?>€
+                            </span>
+                        <?php endif; ?>
                         <?php if ($giorni_rimasti > 1): ?>
                             <br>Giorni alla fine del mese: <span class="font-semibold"><?php echo $giorni_rimasti; ?></span>
                         <?php endif; ?>
