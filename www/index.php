@@ -490,21 +490,95 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             $giorno_corrente = date('j');
             $giorni_rimasti = ($giorni_totali_mese - $giorno_corrente) + 1;
             $data_oggi = date('Y-m-d');
-
-            $res_oggi_stmt = $conn->prepare(
-                "SELECT SUM(sv.importo) AS totale
-                 FROM spese_variabili sv
-                 INNER JOIN mesi m ON m.id = sv.mese_id
-                 WHERE sv.mese_id = ? AND m.utente_id = ? AND sv.data_spesa = ?"
+            $inizio_mese_attivo = sprintf(
+                '%04d-%02d-01',
+                $anno_attivo,
+                $numero_mese_attivo
             );
-            $res_oggi_stmt->bind_param("iis", $mese_id, $utente_id, $data_oggi);
-            $res_oggi_stmt->execute();
-            $tot_var_oggi = floatval($res_oggi_stmt->get_result()->fetch_assoc()['totale'] ?? 0);
-            $res_oggi_stmt->close();
 
-            $tot_var_precedenti = $tot_var - $tot_var_oggi;
-            $budget_disponibile_inizio_oggi = $budget_variabile_iniziale - $tot_var_precedenti;
-            $quota_inizio_oggi = $budget_disponibile_inizio_oggi / $giorni_rimasti;
+            $res_spese_giornaliere_stmt = $conn->prepare(
+                "SELECT
+                    sv.data_spesa,
+                    SUM(sv.importo) AS totale
+                 FROM spese_variabili sv
+                 INNER JOIN mesi m
+                    ON m.id = sv.mese_id
+                 WHERE sv.mese_id = ?
+                   AND m.utente_id = ?
+                   AND sv.data_spesa BETWEEN ? AND ?
+                 GROUP BY sv.data_spesa
+                 ORDER BY sv.data_spesa"
+            );
+            $res_spese_giornaliere_stmt->bind_param(
+                "iiss",
+                $mese_id,
+                $utente_id,
+                $inizio_mese_attivo,
+                $data_oggi
+            );
+            $res_spese_giornaliere_stmt->execute();
+            $risultato_spese_giornaliere =
+                $res_spese_giornaliere_stmt->get_result();
+
+            $spese_per_giorno = [];
+
+            while (
+                $spesa_giornaliera =
+                    $risultato_spese_giornaliere->fetch_assoc()
+            ) {
+                $spese_per_giorno[
+                    $spesa_giornaliera['data_spesa']
+                ] = floatval($spesa_giornaliera['totale']);
+            }
+
+            $res_spese_giornaliere_stmt->close();
+
+            $budget_da_distribuire = $budget_variabile_iniziale;
+            $avanzo_giorno_precedente = 0.0;
+
+            for (
+                $giorno = 1;
+                $giorno < $giorno_corrente;
+                $giorno++
+            ) {
+                $data_giorno = sprintf(
+                    '%04d-%02d-%02d',
+                    $anno_attivo,
+                    $numero_mese_attivo,
+                    $giorno
+                );
+                $giorni_disponibili =
+                    ($giorni_totali_mese - $giorno) + 1;
+                $quota_base_giorno =
+                    $budget_da_distribuire / $giorni_disponibili;
+                $spesa_giorno = floatval(
+                    $spese_per_giorno[$data_giorno] ?? 0
+                );
+
+                $disponibilita_giorno =
+                    $quota_base_giorno
+                    + $avanzo_giorno_precedente;
+
+                if ($spesa_giorno <= $disponibilita_giorno) {
+                    $avanzo_giorno_precedente =
+                        $disponibilita_giorno - $spesa_giorno;
+                    $budget_da_distribuire -= $quota_base_giorno;
+                } else {
+                    $sforamento_giorno =
+                        $spesa_giorno - $disponibilita_giorno;
+                    $budget_da_distribuire -=
+                        $quota_base_giorno + $sforamento_giorno;
+                    $avanzo_giorno_precedente = 0.0;
+                }
+            }
+
+            $quota_base_oggi =
+                $budget_da_distribuire / $giorni_rimasti;
+            $quota_inizio_oggi =
+                $quota_base_oggi + $avanzo_giorno_precedente;
+            $tot_var_oggi = floatval(
+                $spese_per_giorno[$data_oggi] ?? 0
+            );
 
             $budget_giornaliero = $budget_restante_mese < 0
                 ? $budget_restante_mese

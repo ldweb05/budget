@@ -15,7 +15,8 @@ Completato:
 - versamenti manuali aggiuntivi indipendenti dalla percentuale;
 - prelievi manuali dal Salvadanaio;
 - isolamento dei dati per utente;
-- budget giornaliero con redistribuzione degli avanzi e degli sforamenti;
+- budget giornaliero con redistribuzione degli sforamenti sui giorni rimanenti;
+- trasferimento integrale degli avanzi al giorno immediatamente successivo;
 - Spese programmate con piani e singole scadenze;
 - generazione automatica delle rate con frequenza in mesi;
 - inserimento manuale di scadenze non regolari;
@@ -29,18 +30,20 @@ Completato:
 
 ## Prossimo intervento
 
-### Validazione completa dall'interfaccia delle Spese programmate
+### Validazione completa dall'interfaccia
 
-1. Creare un piano automatico mensile.
-2. Creare un piano manuale con scadenze irregolari.
-3. Verificare la visualizzazione delle rate del mese corrente.
-4. Verificare l'impatto delle rate sul budget giornaliero.
-5. Segnare una rata come pagata.
-6. Modificare una rata non pagata.
-7. Estinguere anticipatamente le ultime rate residue.
-8. Eliminare un piano di prova.
-9. Verificare che il Salvadanaio non venga modificato.
-10. Verificare che un utente non possa vedere o modificare dati di altri utenti.
+1. Verificare al cambio giorno che l'avanzo venga trasferito integralmente al solo giorno successivo.
+2. Verificare che uno sforamento continui a essere redistribuito sui giorni rimanenti.
+3. Creare un piano automatico mensile.
+4. Creare un piano manuale con scadenze irregolari.
+5. Verificare la visualizzazione delle rate del mese corrente.
+6. Verificare l'impatto delle rate sul budget giornaliero.
+7. Segnare una rata come pagata.
+8. Modificare una rata non pagata.
+9. Estinguere anticipatamente le ultime rate residue.
+10. Eliminare un piano di prova.
+11. Verificare che il Salvadanaio non venga modificato.
+12. Verificare che un utente non possa vedere o modificare dati di altri utenti.
 
 ### Successivo intervento concreto
 

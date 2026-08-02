@@ -127,11 +127,14 @@ La dashboard deve mostrare principalmente questo valore.
 
 Se una giornata termina con un avanzo:
 
-- il residuo viene redistribuito automaticamente sui giorni rimanenti.
+- l'intero residuo viene trasferito alla disponibilità del giorno immediatamente successivo;
+- l'avanzo non viene suddiviso tra tutti i giorni rimanenti;
+- se il residuo non viene utilizzato nel giorno successivo, continua a trasferirsi integralmente al giorno seguente.
 
-Quando il budget mensile rimane positivo:
+Se una giornata termina con uno sforamento ma il budget mensile complessivo resta positivo:
 
-- eventuali avanzi o piccoli scostamenti vengono redistribuiti automaticamente sui giorni rimanenti.
+- lo sforamento viene redistribuito automaticamente sui giorni rimanenti;
+- la quota base dei giorni successivi viene ridotta in modo uniforme.
 
 Quando il budget mensile diventa negativo:
 

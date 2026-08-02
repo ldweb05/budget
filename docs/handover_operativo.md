@@ -51,7 +51,8 @@ Ogni risposta deve sempre riportare:
 - le spese variabili riducono il budget disponibile;
 - le rate programmate del mese sono considerate importi già impegnati;
 - le rate programmate non vengono duplicate tra le spese variabili;
-- il residuo viene distribuito sui giorni rimanenti del mese;
+- gli sforamenti giornalieri vengono redistribuiti sui giorni rimanenti del mese;
+- gli avanzi giornalieri vengono trasferiti integralmente al giorno immediatamente successivo;
 - una modifica per volta;
 - nessun refactoring o intervento non richiesto.
 
