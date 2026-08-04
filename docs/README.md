@@ -108,6 +108,43 @@ Esempio:
 
 ---
 
+
+# Accesso remoto HTTPS
+
+L'applicazione è raggiungibile da Internet tramite:
+
+`https://budget-casa.duckdns.org:60443`
+
+La terminazione HTTPS è gestita da Caddy, eseguito nello stesso progetto Docker Compose.
+
+Componenti aggiunti:
+
+- servizio `duckdns`, che aggiorna automaticamente l'indirizzo IPv4 pubblico associato a `budget-casa.duckdns.org`;
+- servizio `caddy`, che espone la porta TCP `60443` del Raspberry e inoltra le richieste al servizio applicativo `web` sulla porta interna `80`;
+- immagine Caddy personalizzata tramite `Dockerfile.caddy`, con il modulo DNS DuckDNS;
+- file `Caddyfile`, contenente il dominio, la configurazione TLS e il reverse proxy;
+- volumi Docker `caddy_data` e `caddy_config`, utilizzati per certificati, account ACME e configurazione persistente.
+
+Il certificato TLS viene emesso e rinnovato automaticamente da Let's Encrypt tramite DNS challenge.
+
+Questo metodo non richiede l'esposizione pubblica delle porte standard `80` e `443`.
+
+Percorso della connessione:
+
+`Internet → IliadBox:60443 → OpenWrt:60443 → Raspberry 192.168.2.215:60443 → Caddy → web:80`
+
+Inoltri richiesti:
+
+- IliadBox: porta TCP esterna `60443` verso la porta `60443` dell'indirizzo WAN di OpenWrt;
+- OpenWrt: porta TCP `60443` verso `192.168.2.215:60443`.
+
+Le variabili sensibili sono memorizzate esclusivamente nel file `.env`, che non deve essere tracciato da Git:
+
+- `DUCKDNS_SUBDOMAINS`;
+- `DUCKDNS_TOKEN`.
+
+L'accesso HTTP precedente deve essere rimosso dal port forwarding quando non è più necessario, così da rendere Budget raggiungibile esclusivamente tramite HTTPS.
+
 # Installazione
 
 Da completare dopo verifica dell'intero processo di installazione.

@@ -1,0 +1,7 @@
+budget-casa.duckdns.org {
+    tls {
+        dns duckdns {env.DUCKDNS_TOKEN}
+    }
+
+    reverse_proxy web:80
+}
