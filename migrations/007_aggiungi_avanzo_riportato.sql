@@ -1,0 +1,6 @@
+START TRANSACTION;
+
+ALTER TABLE mesi
+    ADD COLUMN avanzo_riportato DECIMAL(10,2) NOT NULL DEFAULT 0 AFTER percentuale_risparmio;
+
+COMMIT;

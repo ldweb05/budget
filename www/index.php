@@ -55,9 +55,95 @@ $mese_display = $mesi_it[$mese_attivo] . " " . $anno_attivo;
 if (isset($_POST['crea_mese'])) {
     $m_creare = $_POST['m_creare'];
     $a_creare = intval($_POST['a_creare']);
-    
-    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (utente_id, nome, anno, entrata, percentuale_risparmio) VALUES (?, ?, ?, 900.00, 15)");
-    $ins_mese->bind_param("isi", $utente_id, $m_creare, $a_creare);
+
+    // Calcolo dell'avanzo da riportare dal mese precedente (solo se positivo).
+    $avanzo_da_riportare = 0.0;
+    $data_mese_creare = DateTime::createFromFormat('F Y', "$m_creare $a_creare");
+
+    if ($data_mese_creare) {
+        $data_mese_precedente = clone $data_mese_creare;
+        $data_mese_precedente->modify('-1 month');
+        $nome_mese_precedente = $data_mese_precedente->format('F');
+        $anno_mese_precedente = intval($data_mese_precedente->format('Y'));
+
+        $stmt_mese_prec = $conn->prepare("SELECT * FROM mesi WHERE utente_id = ? AND nome = ? AND anno = ?");
+        $stmt_mese_prec->bind_param("isi", $utente_id, $nome_mese_precedente, $anno_mese_precedente);
+        $stmt_mese_prec->execute();
+        $mese_precedente = $stmt_mese_prec->get_result()->fetch_assoc();
+        $stmt_mese_prec->close();
+
+        if ($mese_precedente) {
+            $mese_id_precedente = $mese_precedente['id'];
+
+            $stmt_fisse_prec = $conn->prepare("SELECT COALESCE(SUM(importo), 0) AS totale FROM spese_fisse WHERE mese_id = ?");
+            $stmt_fisse_prec->bind_param("i", $mese_id_precedente);
+            $stmt_fisse_prec->execute();
+            $tot_fisse_prec = floatval($stmt_fisse_prec->get_result()->fetch_assoc()['totale'] ?? 0);
+            $stmt_fisse_prec->close();
+
+            $stmt_var_prec = $conn->prepare("SELECT COALESCE(SUM(importo), 0) AS totale FROM spese_variabili WHERE mese_id = ?");
+            $stmt_var_prec->bind_param("i", $mese_id_precedente);
+            $stmt_var_prec->execute();
+            $tot_var_prec = floatval($stmt_var_prec->get_result()->fetch_assoc()['totale'] ?? 0);
+            $stmt_var_prec->close();
+
+            $numero_mese_precedente = intval($data_mese_precedente->format('n'));
+
+            $stmt_programmate_prec = $conn->prepare(
+                "SELECT COALESCE(SUM(s.importo), 0) AS totale
+                 FROM scadenze_spese_programmate s
+                 INNER JOIN piani_spese_programmate p
+                    ON p.id = s.piano_id
+                 WHERE p.utente_id = ?
+                   AND YEAR(
+                        CASE
+                            WHEN s.pagata = 1
+                             AND s.data_pagamento < s.data_scadenza
+                                THEN s.data_pagamento
+                            ELSE s.data_scadenza
+                        END
+                   ) = ?
+                   AND MONTH(
+                        CASE
+                            WHEN s.pagata = 1
+                             AND s.data_pagamento < s.data_scadenza
+                                THEN s.data_pagamento
+                            ELSE s.data_scadenza
+                        END
+                   ) = ?"
+            );
+            $stmt_programmate_prec->bind_param(
+                "iii",
+                $utente_id,
+                $anno_mese_precedente,
+                $numero_mese_precedente
+            );
+            $stmt_programmate_prec->execute();
+            $tot_programmate_prec = floatval(
+                $stmt_programmate_prec->get_result()->fetch_assoc()['totale'] ?? 0
+            );
+            $stmt_programmate_prec->close();
+
+            $entrata_prec = floatval($mese_precedente['entrata']);
+            $percentuale_prec = floatval($mese_precedente['percentuale_risparmio']);
+            $avanzo_riportato_prec = floatval($mese_precedente['avanzo_riportato'] ?? 0);
+            $quota_risparmio_prec = $entrata_prec * ($percentuale_prec / 100);
+
+            $budget_finale_prec =
+                ($entrata_prec - $quota_risparmio_prec)
+                - $tot_fisse_prec
+                - $tot_programmate_prec
+                + $avanzo_riportato_prec
+                - $tot_var_prec;
+
+            if ($budget_finale_prec > 0) {
+                $avanzo_da_riportare = $budget_finale_prec;
+            }
+        }
+    }
+
+    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (utente_id, nome, anno, entrata, percentuale_risparmio, avanzo_riportato) VALUES (?, ?, ?, 900.00, 15, ?)");
+    $ins_mese->bind_param("isid", $utente_id, $m_creare, $a_creare, $avanzo_da_riportare);
     $ins_mese->execute();
     $mese_id = $conn->insert_id;
 
@@ -478,11 +564,14 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
         $quota_risparmio = $entrata_totale * ($percentuale_risparmio / 100);
         $entrata_dopo_risparmio = $entrata_totale - $quota_risparmio;
+        // Avanzo positivo riportato dal mese precedente (0 se il mese precedente
+        // ha chiuso in negativo, o se non esiste ancora un mese precedente).
+        $avanzo_riportato = floatval($mese_dati['avanzo_riportato'] ?? 0);
         $budget_variabile_iniziale =
             $entrata_dopo_risparmio
             - $tot_fisse
             - $tot_programmate;
-        $budget_restante_mese = $budget_variabile_iniziale - $tot_var;
+        $budget_restante_mese = $budget_variabile_iniziale + $avanzo_riportato - $tot_var;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
         $giorni_totali_mese = date('t', strtotime("1 $mese_attivo $anno_attivo"));
@@ -534,7 +623,11 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             $res_spese_giornaliere_stmt->close();
 
             $budget_da_distribuire = $budget_variabile_iniziale;
-            $avanzo_giorno_precedente = 0.0;
+            // Il giorno 1 del mese eredita l'avanzo del mese precedente esattamente
+            // come un normale avanzo giornaliero (comportamento identico al riporto
+            // da un giorno all'altro), non viene invece sommato al monte che si
+            // divide per tutti i giorni del mese.
+            $avanzo_giorno_precedente = $avanzo_riportato;
 
             for (
                 $giorno = 1;
