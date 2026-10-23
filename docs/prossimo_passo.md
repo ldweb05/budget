@@ -27,6 +27,7 @@ Completato:
 - eliminazione del piano e delle relative scadenze;
 - conservazione della scadenza originaria e della data effettiva di pagamento;
 - isolamento multiutente delle Spese programmate.
+- collegamento facoltativo delle Spese fisse a un documento esterno (Paperless-ngx o Google Drive) tramite link, con descrizione cliccabile in colore orangered (2026-10-23).
 - configurazione del dominio dinamico `budget-casa.duckdns.org`;
 - aggiornamento automatico dell'indirizzo IPv4 tramite container DuckDNS;
 - aggiunta di Caddy come reverse proxy HTTPS;

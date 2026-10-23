@@ -36,6 +36,7 @@ Componenti principali verificati:
 - `www/salvadanaio.php`: saldo, storico e movimenti del Salvadanaio;
 - `www/admin.php`: gestione amministrativa degli utenti;
 - `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
+- `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
 
@@ -67,6 +68,17 @@ Le operazioni disponibili comprendono:
 - eliminazione completa del piano.
 
 Tutte le query verificano l'appartenenza dei dati all'utente autenticato.
+
+---
+
+# Collegamento documenti alle Spese fisse
+
+La tabella `spese_fisse` contiene la colonna facoltativa `link_documento` (`VARCHAR(1000) NULL`), aggiunta dalla migrazione `008_aggiungi_link_documento_spese_fisse.sql`.
+
+- Il link viene validato in `www/index.php` dalla funzione `normalizza_link_documento()`: sono accettati solo URL `http`/`https` validi e lunghi al massimo 1000 caratteri; un valore vuoto rimuove il link.
+- Azioni in `www/index.php`: `add_fissa_nuova` (inserimento con link facoltativo) e `update_link_fissa` (aggiunta, modifica o rimozione del link su una voce esistente, con verifica di `utente_id` tramite join con `mesi`).
+- Nessuna integrazione API: viene salvato solo l'URL.
+- Per Paperless-ngx usare il link della pagina del documento (`http://<ip-pi>:8000/documents/<id>/details`), non quello dell'API (`/api/documents/<id>/...`), che richiede un token e restituisce `401 Unauthorized` nel browser.
 
 ---
 

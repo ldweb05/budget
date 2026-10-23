@@ -200,3 +200,37 @@ cd /home/lorenzo/budget
 git status
 
 Il workflow operativo deve essere eseguito esclusivamente all'interno di questo repository.
+
+---
+
+# 2026-10-23 — Collegamento documenti alle Spese fisse
+
+## Cosa è stato fatto
+
+- Aggiunta la possibilità di collegare ogni spesa fissa a un documento esterno (Paperless-ngx o Google Drive) tramite semplice link.
+- La descrizione della voce diventa cliccabile, in colore orangered con sottolineatura tratteggiata, solo se esiste un link; il documento si apre in una nuova scheda.
+- Nel pannello "Gestisci Spese Esistenti" (ex "Elimina Spese Esistenti") ogni voce ha l'azione "Link" / "Modifica link", che mostra un campo per salvare, cambiare o rimuovere il link (campo vuoto = rimozione).
+- Il form "Aggiungi Spese Fisse" ha un campo facoltativo "Link documento".
+
+## File toccati
+
+- `migrations/008_aggiungi_link_documento_spese_fisse.sql` (nuovo): colonna `spese_fisse.link_documento VARCHAR(1000) NULL`.
+- `www/index.php`: funzione `normalizza_link_documento()`, azione `update_link_fissa`, inserimento con link in `add_fissa_nuova`, visualizzazione del link nell'elenco e nel pannello di gestione.
+
+## Decisioni tecniche
+
+- Solo URL salvato, nessuna integrazione con le API di Paperless o Google: scelta dell'utente per semplicità.
+- Un solo link per voce: evita una tabella separata.
+- Il link non viene riportato al mese successivo: ogni mese ha il proprio documento (es. bolletta del mese). Il nuovo mese crea comunque solo le voci predefinite Condominio e Telefono, senza copiare quelle del mese precedente.
+- Accettati solo URL `http`/`https` validati con `parse_url` e `FILTER_VALIDATE_URL`, per impedire link `javascript:`; output sempre con `htmlspecialchars`; link aperti con `rel="noopener noreferrer"`.
+- Query di aggiornamento filtrata per `utente_id` tramite join con `mesi`, come le altre azioni sulle spese fisse.
+
+## Problemi incontrati
+
+- Un link copiato dall'anteprima di Paperless (`/api/documents/<id>/preview/`) restituisce `401 Unauthorized`, perché l'API richiede un token. Va usato il link della pagina del documento (`/documents/<id>/details`).
+
+## Attività collaterali della stessa sessione
+
+- Punto di ripristino in `~/backups/budget/` (dump database e archivio file del 2026-10-23 10:16) e tag `checkpoint-pre-link-documenti`.
+- Pulizia del repository: rimossi `www/index.php.old` (commit), `www/index.php.bak_prima_avanzo_v2` e `backup_pre_avanzo_mensile.sql` (non tracciati, conservati nel punto di ripristino).
+- Repository GitHub `ldweb05/budget`: pubblicato `master` come branch predefinito; eliminato il vecchio `main`, che conteneva solo il README iniziale.

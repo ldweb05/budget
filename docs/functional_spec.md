@@ -53,7 +53,12 @@ Le spese fisse:
 
 - sono permanenti;
 - vengono considerate impegnate dal primo giorno del mese;
-- vengono sempre incluse nel calcolo del budget disponibile.
+- vengono sempre incluse nel calcolo del budget disponibile;
+- possono essere collegate facoltativamente a un documento esterno (Paperless-ngx o Google Drive) tramite un semplice link, uno per voce;
+- se una voce ha un link, la descrizione diventa cliccabile, è evidenziata in colore orangered e apre il documento in una nuova scheda; senza link resta testo normale;
+- il link si può aggiungere, modificare o rimuovere anche sulle voci già presenti nel mese;
+- il link appartiene al singolo mese e non viene riportato sulle voci del mese successivo;
+- il link non influisce in alcun modo sui calcoli del budget.
 
 ---
 

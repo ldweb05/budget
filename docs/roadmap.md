@@ -150,3 +150,18 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - prova completa dall'interfaccia utente;
 - controllo finale dei diff;
 - eventuali rifiniture esclusivamente grafiche o di usabilità.
+
+
+---
+
+# Collegamento documenti alle Spese fisse
+
+## Stato
+
+✅ Completato il 2026-10-23.
+
+- ✅ Link facoltativo (uno per voce) a un documento Paperless-ngx o Google Drive.
+- ✅ Campo link nel form di inserimento di una nuova spesa fissa.
+- ✅ Aggiunta, modifica e rimozione del link sulle voci già presenti nel mese.
+- ✅ Descrizione cliccabile in colore orangered solo per le voci collegate.
+- ✅ Validazione degli URL (`http`/`https`) e isolamento per utente.

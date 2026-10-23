@@ -237,14 +237,35 @@ if (isset($_POST['update_budget'])) {
     exit;
 }
 
+// Validazione del link a un documento esterno (Paperless-ngx, Google Drive):
+// restituisce null se vuoto, false se non valido, altrimenti l'URL ripulito.
+function normalizza_link_documento($valore) {
+    $valore = trim((string) $valore);
+    if ($valore === '') {
+        return null;
+    }
+    if (strlen($valore) > 1000) {
+        return false;
+    }
+    $schema = strtolower((string) parse_url($valore, PHP_URL_SCHEME));
+    if (!in_array($schema, ['http', 'https'], true) || filter_var($valore, FILTER_VALIDATE_URL) === false) {
+        return false;
+    }
+    return $valore;
+}
+
 // Azione: Aggiungi Nuova Spesa Fissa
 if (isset($_POST['add_fissa_nuova'])) {
     $mese_id = intval($_POST['mese_id']);
     $desc = htmlspecialchars($_POST['descrizione_fissa']);
     $importo = floatval($_POST['importo_fissa']);
+    $link_documento = normalizza_link_documento($_POST['link_fissa'] ?? '');
+    if ($link_documento === false) {
+        $link_documento = null;
+    }
     if ($importo > 0 && !empty($desc)) {
-        $stmt = $conn->prepare("INSERT INTO spese_fisse (mese_id, descrizione, importo, pagato) SELECT id, ?, ?, 0 FROM mesi WHERE id = ? AND utente_id = ?");
-        $stmt->bind_param("sdii", $desc, $importo, $mese_id, $utente_id);
+        $stmt = $conn->prepare("INSERT INTO spese_fisse (mese_id, descrizione, importo, pagato, link_documento) SELECT id, ?, ?, 0, ? FROM mesi WHERE id = ? AND utente_id = ?");
+        $stmt->bind_param("sdsii", $desc, $importo, $link_documento, $mese_id, $utente_id);
         $stmt->execute();
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
@@ -263,6 +284,20 @@ if (isset($_GET['delete_fissa'])) {
 if (isset($_GET['toggle_fissa'])) {
     $id_fissa = intval($_GET['toggle_fissa']);
     $stmt = $conn->prepare("UPDATE spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id SET sf.pagato = 1 - sf.pagato WHERE sf.id = ? AND m.utente_id = ?"); $stmt->bind_param("ii", $id_fissa, $utente_id); $stmt->execute(); $stmt->close();
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Collega, modifica o rimuove il documento di una Spesa Fissa
+if (isset($_POST['update_link_fissa'])) {
+    $id_fissa = intval($_POST['id_fissa']);
+    $link_documento = normalizza_link_documento($_POST['link_fissa'] ?? '');
+    if ($link_documento !== false) {
+        $stmt = $conn->prepare("UPDATE spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id SET sf.link_documento = ? WHERE sf.id = ? AND m.utente_id = ?");
+        $stmt->bind_param("sii", $link_documento, $id_fissa, $utente_id);
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
 }
@@ -771,7 +806,11 @@ $preferiti_query = $preferiti_stmt->get_result();
                                     ✓
                                 </a>
                                 <span class="text-sm <?php echo $fissa['pagato'] ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
-                                    <?php echo $fissa['descrizione']; ?>
+                                    <?php if (!empty($fissa['link_documento'])): ?>
+                                        <a href="<?php echo htmlspecialchars($fissa['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo $fissa['descrizione']; ?></a>
+                                    <?php else: ?>
+                                        <?php echo $fissa['descrizione']; ?>
+                                    <?php endif; ?>
                                 </span>
                             </div>
                             <span class="text-sm font-semibold <?php echo $fissa['pagato'] ? 'text-gray-400' : 'text-gray-600'; ?>">
@@ -832,14 +871,15 @@ $preferiti_query = $preferiti_stmt->get_result();
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Aggiungi / Rimuovi Spese Fisse</h4>
-                    <form method="POST" class="flex flex-col sm:flex-row gap-2 mb-3">
+                    <form method="POST" class="flex flex-col sm:flex-row sm:flex-wrap gap-2 mb-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <input type="text" name="descrizione_fissa" placeholder="Nuova voce fissa" required class="flex-1 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <input type="number" step="0.01" name="importo_fissa" placeholder="€" required class="w-16 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" name="add_fissa_nuova" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-xl hover:bg-gray-900 transition">+</button>
+                        <input type="url" name="link_fissa" maxlength="1000" placeholder="Link documento (Paperless o Drive, facoltativo)" class="sm:basis-full px-3 py-1.5 border rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </form>
-                    <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase">Elimina Spese Esistenti:</p>
-                    <div class="max-h-24 overflow-y-auto divide-y divide-gray-100">
+                    <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase">Gestisci Spese Esistenti:</p>
+                    <div class="max-h-48 overflow-y-auto divide-y divide-gray-100">
                         <?php
                         $elenco_fisse_stmt = $conn->prepare("SELECT sf.* FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
                         $elenco_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
@@ -847,9 +887,19 @@ $preferiti_query = $preferiti_stmt->get_result();
                         $elenco_fisse = $elenco_fisse_stmt->get_result();
                         while($f_item = $elenco_fisse->fetch_assoc()):
                         ?>
-                        <div class="py-1.5 flex justify-between items-center text-xs">
-                            <span class="text-gray-600"><?php echo $f_item['descrizione']; ?> (<?php echo $f_item['importo']; ?>€)</span>
-                            <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_fissa=<?php echo $f_item['id']; ?>" onclick="return confirm('Vuoi eliminare questa spesa fissa?')" class="text-red-500 font-bold hover:underline">Elimina</a>
+                        <div class="riga-fissa py-1.5 text-xs">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="text-gray-600"><?php echo $f_item['descrizione']; ?> (<?php echo $f_item['importo']; ?>€)</span>
+                                <span class="flex items-center gap-3 shrink-0">
+                                    <button type="button" onclick="this.closest('.riga-fissa').querySelector('.form-link-fissa').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline"><?php echo !empty($f_item['link_documento']) ? 'Modifica link' : 'Link'; ?></button>
+                                    <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_fissa=<?php echo $f_item['id']; ?>" onclick="return confirm('Vuoi eliminare questa spesa fissa?')" class="text-red-500 font-bold hover:underline">Elimina</a>
+                                </span>
+                            </div>
+                            <form method="POST" class="form-link-fissa hidden mt-1.5 flex gap-2">
+                                <input type="hidden" name="id_fissa" value="<?php echo intval($f_item['id']); ?>">
+                                <input type="url" name="link_fissa" maxlength="1000" value="<?php echo htmlspecialchars($f_item['link_documento'] ?? '', ENT_QUOTES); ?>" placeholder="Incolla il link (vuoto = rimuovi)" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" name="update_link_fissa" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                            </form>
                         </div>
                         <?php endwhile; ?>
                     </div>
