@@ -28,6 +28,7 @@ Completato:
 - conservazione della scadenza originaria e della data effettiva di pagamento;
 - isolamento multiutente delle Spese programmate.
 - collegamento facoltativo delle Spese fisse a un documento esterno (Paperless-ngx o Google Drive) tramite link, con descrizione cliccabile in colore orangered (2026-10-23).
+- Spese fisse a scadenza (es. rate F24): rate con date reali, visibili nella dashboard sotto "Spese Fisse (NON considerate nel budget)", scalate dal budget solo quando pagate nel mese del pagamento, con link documento per rata (2026-10-23).
 - accesso remoto esclusivamente tramite tunnel WireGuard, HTTP sulla porta `8085`.
 
 ## Prossimo intervento

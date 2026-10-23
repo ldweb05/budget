@@ -62,6 +62,31 @@ Le spese fisse:
 
 ---
 
+# Spese fisse a scadenza
+
+Le Spese fisse a scadenza sono impegni importanti con date di scadenza reali non mensili (es. rate F24, scadenze ogni 120 giorni).
+
+Sono distinte dalle Spese programmate (acquisti rateali poco rilevanti, consultabili dal pulsante "Programmate") e restano sempre in vista nella dashboard, nella card Spese Fisse, sotto la sezione "Spese Fisse (NON considerate nel budget)".
+
+Ogni voce appartiene all'utente autenticato e contiene:
+
+- descrizione;
+- importo della rata;
+- una data di scadenza reale per ogni rata, inserita manualmente (nessun calcolo automatico delle date).
+
+Regole:
+
+- una rata non pagata è visibile solo nel mese della propria scadenza e non viene scalata dal budget;
+- la rata viene scalata dal budget solo quando l'utente spunta PAGATO, nel mese del pagamento (data di pagamento = giorno in cui viene spuntata);
+- se viene pagata in un mese diverso dalla scadenza, compare anche nel mese del pagamento, come pagata;
+- togliendo la spunta l'importo torna disponibile;
+- importo e data sono modificabili solo sulle rate non pagate;
+- ogni rata può essere collegata a un documento esterno (Paperless-ngx o Google Drive) tramite link, anche dopo il pagamento, con la stessa resa delle spese fisse (descrizione cliccabile in orangered);
+- l'eliminazione di una voce elimina tutte le sue rate;
+- non modificano il Salvadanaio e rispettano l'isolamento dei dati per utente.
+
+---
+
 # Spese programmate
 
 Le Spese programmate rappresentano impegni economici futuri già conosciuti ma con durata limitata.

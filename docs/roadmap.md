@@ -165,3 +165,18 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - ✅ Aggiunta, modifica e rimozione del link sulle voci già presenti nel mese.
 - ✅ Descrizione cliccabile in colore orangered solo per le voci collegate.
 - ✅ Validazione degli URL (`http`/`https`) e isolamento per utente.
+
+---
+
+# Spese fisse a scadenza
+
+## Stato
+
+✅ Completato il 2026-10-23.
+
+- ✅ Voci con rate a date di scadenza reali, inserite manualmente.
+- ✅ Sezione "Spese Fisse (NON considerate nel budget)" nella dashboard, visibile nel mese della scadenza.
+- ✅ Importo scalato dal budget solo con PAGATO, nel mese del pagamento.
+- ✅ Link documento per singola rata, anche dopo il pagamento.
+- ✅ Modifica di importo e data delle rate non pagate, eliminazione della voce.
+- ✅ Isolamento per utente; Spese programmate invariate.

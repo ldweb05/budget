@@ -235,3 +235,34 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Punto di ripristino in `~/backups/budget/` (dump database e archivio file del 2026-10-23 10:16) e tag `checkpoint-pre-link-documenti`.
 - Pulizia del repository: rimossi `www/index.php.old` (commit), `www/index.php.bak_prima_avanzo_v2` e `backup_pre_avanzo_mensile.sql` (non tracciati, conservati nel punto di ripristino).
 - Repository GitHub `ldweb05/budget`: pubblicato `master` come branch predefinito; eliminato il vecchio `main`, che conteneva solo il README iniziale.
+
+---
+
+# 2026-10-23 — Spese fisse a scadenza
+
+## Cosa è stato fatto
+
+- Nuove voci di spesa fissa con cadenza non mensile (es. rata F24): ogni voce ha un importo e una data di scadenza reale per ogni rata, inserita manualmente.
+- Nella card Spese Fisse della dashboard è stata aggiunta la sezione "Spese Fisse (NON considerate nel budget)": mostra le rate in scadenza nel mese (e quelle pagate nel mese), con checkbox PAGATO, numero rata, data di scadenza, data di pagamento e totale "Ancora da pagare".
+- La rata viene scalata dal budget solo quando viene spuntata PAGATO, nel mese del pagamento.
+- Nel Pannello Gestione Mese il riquadro "Spese Fisse a scadenza (NON nel budget)" permette di creare la voce, collegare un documento a ogni rata (anche pagata), modificare importo e data delle rate non pagate ed eliminare la voce.
+
+## File toccati
+
+- `migrations/009_create_spese_scadenza.sql` (nuovo): tabelle `voci_spese_scadenza` e `rate_spese_scadenza`.
+- `www/index.php`: azioni, funzione `totale_rate_scadenza_pagate()`, sottrazione nei tre punti di calcolo del budget, sezione della dashboard e riquadro di gestione.
+
+## Decisioni tecniche
+
+- Tabelle dedicate invece di estendere le Spese programmate: l'utente considera le programmate (Amazon, PayPal, Scalapay) poco rilevanti e consultabili dal pulsante "Programmate", mentre queste devono restare in vista in dashboard. Un primo tentativo con un'opzione "scala solo quando pagata" sui piani programmati è stato annullato prima del commit (colonne rimosse dal database).
+- Date sempre inserite a mano: con cadenze come 120 giorni la data reale non è calcolabile in modo affidabile.
+- Competenza = mese del pagamento, anche per i pagamenti in ritardo (diverso dalle Spese programmate).
+- Le rate non pagate e scadute restano visibili solo nel mese della scadenza, come richiesto; l'eventuale visualizzazione anche nei mesi successivi è un possibile miglioramento futuro.
+- Conferma JavaScript sulla checkbox PAGATO, perché cambia il budget.
+- Patch della parte grafica trasferita compressa in base64 e verificata con `md5sum` tra sandbox e Pi.
+
+## Verifiche
+
+- Test preventivo nel sandbox (PHP + MariaDB): creazione, PAGATO e rimozione, link (rifiuto di URL non http/https), modifica solo su rate non pagate, eliminazione, isolamento tra utenti, calcolo del budget e riporto dell'avanzo al mese successivo.
+- Test funzionale reale nel browser da parte dell'utente: creazione voce, scadenza, link e calcolo.
+- Punto di ripristino: dump e archivio del 2026-10-23 12:34 in `~/backups/budget/`, tag `checkpoint-pre-spese-scadenza`.

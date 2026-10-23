@@ -52,6 +52,8 @@ Le spese fisse sono considerate impegnate dal primo giorno del mese.
 
 Devono essere sempre incluse nel calcolo del budget disponibile.
 
+Fanno eccezione le Spese fisse a scadenza (es. rate F24 con date reali non mensili): sono visibili nel mese della scadenza ma vengono scalate dal budget solo quando sono segnate come pagate, nel mese del pagamento.
+
 ---
 
 ## 3. Budget variabile

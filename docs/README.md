@@ -37,6 +37,7 @@ Componenti principali verificati:
 - `www/admin.php`: gestione amministrativa degli utenti;
 - `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
 - `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;
+- `migrations/009_create_spese_scadenza.sql`: tabelle `voci_spese_scadenza` e `rate_spese_scadenza` delle Spese fisse a scadenza;
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
 
@@ -174,3 +175,21 @@ Non creare commit automaticamente.
 Il processo di rilascio non è ancora formalizzato.
 
 Prima di qualsiasi commit o rilascio verificare sempre `prossimo_passo.md`.
+
+---
+
+# Spese fisse a scadenza
+
+La funzione utilizza due tabelle dedicate, create dalla migrazione `009_create_spese_scadenza.sql`:
+
+- `voci_spese_scadenza` (`utente_id`, `descrizione`), associata direttamente all'utente con `ON DELETE CASCADE`;
+- `rate_spese_scadenza` (`voce_id`, `numero_rata`, `importo`, `data_scadenza`, `pagata`, `data_pagamento`, `link_documento`), associata alla voce con `ON DELETE CASCADE`.
+
+Tutto il codice è in `www/index.php`:
+
+- azioni: `add_voce_scadenza` (le date vengono validate, ordinate e numerate), `toggle_rata_scadenza` (PAGATO con data di pagamento = oggi, o rimozione), `update_link_rata_scadenza`, `update_rata_scadenza` (solo rate non pagate), `delete_voce_scadenza`;
+- funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
+- il totale viene sottratto in tutti e tre i punti di calcolo del budget: dashboard, riporto dell'avanzo dal mese precedente e controllo degli imprevisti all'inserimento di una spesa;
+- visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e riquadro di gestione nel Pannello Gestione Mese.
+
+Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scadenza.utente_id`. I link sono validati con `normalizza_link_documento()`.

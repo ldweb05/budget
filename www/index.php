@@ -123,6 +123,7 @@ if (isset($_POST['crea_mese'])) {
                 $stmt_programmate_prec->get_result()->fetch_assoc()['totale'] ?? 0
             );
             $stmt_programmate_prec->close();
+            $tot_scadenza_prec = totale_rate_scadenza_pagate($conn, $utente_id, $anno_mese_precedente, $numero_mese_precedente);
 
             $entrata_prec = floatval($mese_precedente['entrata']);
             $percentuale_prec = floatval($mese_precedente['percentuale_risparmio']);
@@ -133,6 +134,7 @@ if (isset($_POST['crea_mese'])) {
                 ($entrata_prec - $quota_risparmio_prec)
                 - $tot_fisse_prec
                 - $tot_programmate_prec
+                - $tot_scadenza_prec
                 + $avanzo_riportato_prec
                 - $tot_var_prec;
 
@@ -302,6 +304,155 @@ if (isset($_POST['update_link_fissa'])) {
     exit;
 }
 
+// ---------------------------------------------------------
+// SPESE FISSE A SCADENZA (NON considerate nel budget finché non pagate)
+// Ogni rata compare nel mese della scadenza e viene scalata dal budget
+// solo quando è pagata, nel mese del pagamento.
+// ---------------------------------------------------------
+
+function data_scadenza_valida($valore) {
+    $valore = trim((string) $valore);
+    $data = DateTimeImmutable::createFromFormat('Y-m-d', $valore);
+    return ($data && $data->format('Y-m-d') === $valore) ? $valore : false;
+}
+
+// Totale delle rate a scadenza PAGATE nel mese indicato (competenza = mese del pagamento)
+function totale_rate_scadenza_pagate($conn, $utente_id, $anno, $numero_mese) {
+    $stmt = $conn->prepare(
+        "SELECT COALESCE(SUM(r.importo), 0) AS totale
+         FROM rate_spese_scadenza r
+         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+         WHERE v.utente_id = ?
+           AND r.pagata = 1
+           AND YEAR(r.data_pagamento) = ?
+           AND MONTH(r.data_pagamento) = ?"
+    );
+    $stmt->bind_param("iii", $utente_id, $anno, $numero_mese);
+    $stmt->execute();
+    $totale = floatval($stmt->get_result()->fetch_assoc()['totale'] ?? 0);
+    $stmt->close();
+    return $totale;
+}
+
+// Azione: Crea una nuova voce a scadenza con le sue rate
+if (isset($_POST['add_voce_scadenza'])) {
+    $desc_scadenza = trim($_POST['descrizione_scadenza'] ?? '');
+    $importo_scadenza = round(floatval($_POST['importo_scadenza'] ?? 0), 2);
+    $date_inserite = $_POST['date_scadenza'] ?? [];
+    $date_valide = [];
+
+    if (is_array($date_inserite)) {
+        foreach ($date_inserite as $data_inserita) {
+            if (trim((string) $data_inserita) === '') {
+                continue;
+            }
+            $data_ok = data_scadenza_valida($data_inserita);
+            if ($data_ok === false) {
+                $date_valide = [];
+                break;
+            }
+            $date_valide[] = $data_ok;
+        }
+    }
+    sort($date_valide);
+
+    if ($desc_scadenza !== '' && mb_strlen($desc_scadenza) <= 255 && $importo_scadenza > 0 && count($date_valide) > 0 && count($date_valide) <= 120) {
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare("INSERT INTO voci_spese_scadenza (utente_id, descrizione) VALUES (?, ?)");
+            $stmt->bind_param("is", $utente_id, $desc_scadenza);
+            if (!$stmt->execute()) {
+                throw new RuntimeException($stmt->error);
+            }
+            $voce_id = intval($conn->insert_id);
+            $stmt->close();
+
+            $stmt = $conn->prepare("INSERT INTO rate_spese_scadenza (voce_id, numero_rata, importo, data_scadenza) VALUES (?, ?, ?, ?)");
+            foreach ($date_valide as $indice => $data_rata) {
+                $numero_rata = $indice + 1;
+                $stmt->bind_param("iids", $voce_id, $numero_rata, $importo_scadenza, $data_rata);
+                if (!$stmt->execute()) {
+                    throw new RuntimeException($stmt->error);
+                }
+            }
+            $stmt->close();
+            $conn->commit();
+        } catch (Throwable $eccezione) {
+            $conn->rollback();
+        }
+    }
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Segna o toglie PAGATO su una rata a scadenza (data pagamento = oggi)
+if (isset($_GET['toggle_rata_scadenza'])) {
+    $id_rata = intval($_GET['toggle_rata_scadenza']);
+    $data_oggi = date('Y-m-d');
+    $stmt = $conn->prepare(
+        "UPDATE rate_spese_scadenza
+         SET data_pagamento = IF(pagata = 1, NULL, ?),
+             pagata = 1 - pagata
+         WHERE id = ?
+           AND voce_id IN (SELECT id FROM voci_spese_scadenza WHERE utente_id = ?)"
+    );
+    $stmt->bind_param("sii", $data_oggi, $id_rata, $utente_id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Collega, modifica o rimuove il documento di una rata a scadenza
+if (isset($_POST['update_link_rata_scadenza'])) {
+    $id_rata = intval($_POST['id_rata']);
+    $link_documento = normalizza_link_documento($_POST['link_rata'] ?? '');
+    if ($link_documento !== false) {
+        $stmt = $conn->prepare(
+            "UPDATE rate_spese_scadenza r
+             INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+             SET r.link_documento = ?
+             WHERE r.id = ? AND v.utente_id = ?"
+        );
+        $stmt->bind_param("sii", $link_documento, $id_rata, $utente_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Modifica importo e data di una rata a scadenza non ancora pagata
+if (isset($_POST['update_rata_scadenza'])) {
+    $id_rata = intval($_POST['id_rata']);
+    $importo_rata = round(floatval($_POST['importo_rata'] ?? 0), 2);
+    $data_rata = data_scadenza_valida($_POST['data_rata'] ?? '');
+    if ($importo_rata > 0 && $data_rata !== false) {
+        $stmt = $conn->prepare(
+            "UPDATE rate_spese_scadenza r
+             INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+             SET r.importo = ?, r.data_scadenza = ?
+             WHERE r.id = ? AND v.utente_id = ? AND r.pagata = 0"
+        );
+        $stmt->bind_param("dsii", $importo_rata, $data_rata, $id_rata, $utente_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Elimina una voce a scadenza e tutte le sue rate
+if (isset($_GET['delete_voce_scadenza'])) {
+    $id_voce = intval($_GET['delete_voce_scadenza']);
+    $stmt = $conn->prepare("DELETE FROM voci_spese_scadenza WHERE id = ? AND utente_id = ?");
+    $stmt->bind_param("ii", $id_voce, $utente_id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
 // Azione: Elimina Spesa Preferita
 if (isset($_GET['delete_preferito'])) {
     $id_preferito = intval($_GET['delete_preferito']);
@@ -371,7 +522,17 @@ if (isset($_POST['add_variabile'])) {
                                 ELSE ssp.data_scadenza
                             END
                           ) = MONTH(STR_TO_DATE(m.nome, '%M'))
-                ), 0) AS totale_programmate
+                ), 0) AS totale_programmate,
+                COALESCE((
+                    SELECT SUM(rss.importo)
+                    FROM rate_spese_scadenza rss
+                    INNER JOIN voci_spese_scadenza vss
+                        ON vss.id = rss.voce_id
+                    WHERE vss.utente_id = m.utente_id
+                      AND rss.pagata = 1
+                      AND YEAR(rss.data_pagamento) = m.anno
+                      AND MONTH(rss.data_pagamento) = MONTH(STR_TO_DATE(m.nome, '%M'))
+                ), 0) AS totale_scadenza
              FROM mesi m
              WHERE m.id = ? AND m.utente_id = ?"
         );
@@ -388,6 +549,7 @@ if (isset($_POST['add_variabile'])) {
             $totale_programmate = floatval(
                 $dati_budget['totale_programmate']
             );
+            $totale_scadenza = floatval($dati_budget['totale_scadenza']);
             $quota_risparmio = $entrata * ($percentuale / 100);
 
             $budget_prima =
@@ -395,6 +557,7 @@ if (isset($_POST['add_variabile'])) {
                 - $quota_risparmio
                 - $totale_fisse
                 - $totale_programmate
+                - $totale_scadenza
                 - $totale_variabili;
 
             $ins_var = $conn->prepare(
@@ -594,6 +757,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                 ->fetch_assoc()['totale'] ?? 0
         );
         $res_programmate_stmt->close();
+        $tot_scadenza_pagate = totale_rate_scadenza_pagate($conn, $utente_id, $anno_attivo, $numero_mese_attivo);
 
         $entrata_totale = $mese_dati['entrata'];
         $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
@@ -605,7 +769,8 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $budget_variabile_iniziale =
             $entrata_dopo_risparmio
             - $tot_fisse
-            - $tot_programmate;
+            - $tot_programmate
+            - $tot_scadenza_pagate;
         $budget_restante_mese = $budget_variabile_iniziale + $avanzo_riportato - $tot_var;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
@@ -819,6 +984,72 @@ $preferiti_query = $preferiti_stmt->get_result();
                         </li>
                         <?php endwhile; ?>
                     </ul>
+
+                    <?php
+                    // Rate a scadenza del mese: scadono in questo mese oppure sono state pagate in questo mese
+                    $rs_inizio_mese = sprintf('%04d-%02d-01', $anno_attivo, $numero_mese_attivo);
+                    $rs_fine_mese = date('Y-m-t', strtotime($rs_inizio_mese));
+                    $rs_stmt = $conn->prepare(
+                        "SELECT r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
+                                v.descrizione,
+                                (SELECT COUNT(*) FROM rate_spese_scadenza r2 WHERE r2.voce_id = r.voce_id) AS totale_rate
+                         FROM rate_spese_scadenza r
+                         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+                         WHERE v.utente_id = ?
+                           AND (
+                                r.data_scadenza BETWEEN ? AND ?
+                                OR (r.pagata = 1 AND r.data_pagamento BETWEEN ? AND ?)
+                           )
+                         ORDER BY r.data_scadenza, v.id, r.numero_rata"
+                    );
+                    $rs_stmt->bind_param("issss", $utente_id, $rs_inizio_mese, $rs_fine_mese, $rs_inizio_mese, $rs_fine_mese);
+                    $rs_stmt->execute();
+                    $rs_query = $rs_stmt->get_result();
+                    $rs_da_pagare = 0.0;
+                    ?>
+                    <h3 class="text-sm font-bold text-gray-700 mt-5 mb-1 pt-4 border-t border-gray-100">📌 Spese Fisse (NON considerate nel budget)</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Vengono scalate dal budget solo quando le spunti come pagate, nel mese del pagamento.</p>
+                    <ul class="divide-y divide-gray-100">
+                        <?php if ($rs_query->num_rows === 0): ?>
+                            <li class="py-2 text-xs text-gray-400">Nessuna scadenza in questo mese.</li>
+                        <?php endif; ?>
+                        <?php while ($rs_rata = $rs_query->fetch_assoc()):
+                            $rs_pagata = intval($rs_rata['pagata']) === 1;
+                            if (!$rs_pagata) {
+                                $rs_da_pagare += floatval($rs_rata['importo']);
+                            }
+                        ?>
+                        <li class="py-2.5 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&toggle_rata_scadenza=<?php echo intval($rs_rata['id']); ?>" onclick="return confirm('<?php echo $rs_pagata ? 'Togliere il PAGATO? Importo di nuovo disponibile nel budget.' : 'Segnare come PAGATA oggi? Importo scalato dal budget di questo mese.'; ?>')" title="Pagato" class="w-6 h-6 shrink-0 flex items-center justify-center rounded-md border text-sm <?php echo $rs_pagata ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'; ?>">
+                                    ✓
+                                </a>
+                                <div class="min-w-0">
+                                    <span class="text-sm <?php echo $rs_pagata ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
+                                        <?php if (!empty($rs_rata['link_documento'])): ?>
+                                            <a href="<?php echo htmlspecialchars($rs_rata['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo htmlspecialchars($rs_rata['descrizione']); ?></a>
+                                        <?php else: ?>
+                                            <?php echo htmlspecialchars($rs_rata['descrizione']); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                    <p class="text-[10px] text-gray-400">
+                                        Rata <?php echo intval($rs_rata['numero_rata']); ?>/<?php echo intval($rs_rata['totale_rate']); ?>
+                                        · scadenza <?php echo date('d/m/Y', strtotime($rs_rata['data_scadenza'])); ?>
+                                        <?php if ($rs_pagata && !empty($rs_rata['data_pagamento'])): ?>
+                                            · pagata il <?php echo date('d/m/Y', strtotime($rs_rata['data_pagamento'])); ?>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold shrink-0 <?php echo $rs_pagata ? 'text-gray-400' : 'text-[#FF4500]'; ?>">
+                                <?php echo number_format($rs_rata['importo'], 2, ',', '.'); ?> €
+                            </span>
+                        </li>
+                        <?php endwhile; $rs_stmt->close(); ?>
+                    </ul>
+                    <?php if ($rs_da_pagare > 0): ?>
+                        <p class="text-xs text-right text-gray-500 mt-2">Ancora da pagare: <span class="font-semibold text-[#FF4500]"><?php echo number_format($rs_da_pagare, 2, ',', '.'); ?> €</span></p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -902,6 +1133,82 @@ $preferiti_query = $preferiti_stmt->get_result();
                             </form>
                         </div>
                         <?php endwhile; ?>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Spese Fisse a scadenza (NON nel budget)</h4>
+                    <form method="POST" class="space-y-2 mb-3">
+                        <div class="flex gap-2">
+                            <input type="text" name="descrizione_scadenza" maxlength="255" placeholder="Es. Rata F24" required class="flex-1 min-w-0 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" step="0.01" min="0.01" name="importo_scadenza" placeholder="€ rata" required class="w-24 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase">Date di scadenza (una per rata):</p>
+                        <div id="date-scadenza" class="grid grid-cols-2 gap-2">
+                            <input type="date" name="date_scadenza[]" required class="px-2 py-1.5 border rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="const c = document.getElementById('date-scadenza'); const i = c.querySelector('input').cloneNode(); i.value = ''; i.required = false; c.appendChild(i); i.focus();" class="flex-1 border border-gray-300 text-gray-600 text-xs font-semibold py-1.5 rounded-xl hover:bg-gray-50 transition">+ Aggiungi data</button>
+                            <button type="submit" name="add_voce_scadenza" class="flex-1 bg-gray-800 text-white text-xs font-semibold py-1.5 rounded-xl hover:bg-gray-900 transition">Crea voce</button>
+                        </div>
+                    </form>
+                    <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase">Gestisci voci e rate:</p>
+                    <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                        <?php
+                        $rs_elenco_stmt = $conn->prepare(
+                            "SELECT v.id AS voce_id, v.descrizione, r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento
+                             FROM voci_spese_scadenza v
+                             INNER JOIN rate_spese_scadenza r ON r.voce_id = v.id
+                             WHERE v.utente_id = ?
+                             ORDER BY v.descrizione, v.id, r.numero_rata"
+                        );
+                        $rs_elenco_stmt->bind_param("i", $utente_id);
+                        $rs_elenco_stmt->execute();
+                        $rs_elenco = $rs_elenco_stmt->get_result();
+                        $rs_voce_corrente = 0;
+                        if ($rs_elenco->num_rows === 0):
+                            echo "<p class='text-xs text-gray-400 py-2'>Nessuna voce presente.</p>";
+                        endif;
+                        while ($rs_item = $rs_elenco->fetch_assoc()):
+                            $rs_item_pagata = intval($rs_item['pagata']) === 1;
+                            if ($rs_voce_corrente !== intval($rs_item['voce_id'])):
+                                $rs_voce_corrente = intval($rs_item['voce_id']);
+                        ?>
+                        <div class="pt-2 pb-1 flex justify-between items-center gap-2 text-xs">
+                            <span class="font-bold text-gray-700"><?php echo htmlspecialchars($rs_item['descrizione']); ?></span>
+                            <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_voce_scadenza=<?php echo $rs_voce_corrente; ?>" onclick="return confirm('Vuoi eliminare questa voce e TUTTE le sue rate?')" class="text-red-500 font-bold hover:underline shrink-0">Elimina voce</a>
+                        </div>
+                        <?php endif; ?>
+                        <div class="riga-rata-scadenza py-1.5 pl-2 text-xs">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="<?php echo $rs_item_pagata ? 'text-gray-400' : 'text-gray-600'; ?>">
+                                    Rata <?php echo intval($rs_item['numero_rata']); ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€
+                                    <?php if ($rs_item_pagata && !empty($rs_item['data_pagamento'])): ?>
+                                        · pagata il <?php echo date('d/m/Y', strtotime($rs_item['data_pagamento'])); ?>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="flex items-center gap-3 shrink-0">
+                                    <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-link-rata').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline"><?php echo !empty($rs_item['link_documento']) ? 'Modifica link' : 'Link'; ?></button>
+                                    <?php if (!$rs_item_pagata): ?>
+                                        <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-modifica-rata').classList.toggle('hidden')" class="text-gray-600 font-bold hover:underline">Modifica</button>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <form method="POST" class="form-link-rata hidden mt-1.5 flex gap-2">
+                                <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
+                                <input type="url" name="link_rata" maxlength="1000" value="<?php echo htmlspecialchars($rs_item['link_documento'] ?? '', ENT_QUOTES); ?>" placeholder="Incolla il link (vuoto = rimuovi)" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" name="update_link_rata_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                            </form>
+                            <?php if (!$rs_item_pagata): ?>
+                            <form method="POST" class="form-modifica-rata hidden mt-1.5 flex gap-2">
+                                <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
+                                <input type="date" name="data_rata" required value="<?php echo htmlspecialchars($rs_item['data_scadenza'], ENT_QUOTES); ?>" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="number" step="0.01" min="0.01" name="importo_rata" required value="<?php echo htmlspecialchars($rs_item['importo'], ENT_QUOTES); ?>" class="w-20 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" name="update_rata_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
+                        <?php endwhile; $rs_elenco_stmt->close(); ?>
                     </div>
                 </div>
 
