@@ -69,11 +69,12 @@ Ogni risposta deve sempre riportare:
 
 # Gestione delle release
 
-- il repository è gestito esclusivamente in locale;
-- non è configurato alcun repository remoto;
-- la release corrente è identificata dal tag `v1.2.0-dashboard-v2`;
-- il tag punta al commit `5992a65`;
-- è disponibile l'archivio locale `budget-v1.2.0-dashboard-v2.tar.gz`.
+- repository remoto: `github.com/ldweb05/budget` (pubblico), remote `git@github.com:ldweb05/budget.git`;
+- branch di lavoro e predefinito: `master`; commit diretti, senza pull request;
+- essendo il repository pubblico, non devono mai essere committati `.env`, dump SQL, backup o file con dati personali;
+- tag di release (solo in locale): `v1.1.0-env`, `v1.1.1`, `v1.2.0-dashboard-v2` (`5992a65`), `v3.0.0` (`5a9927c`, il più recente);
+- tag di checkpoint (solo in locale): `checkpoint-salvadanaio`, `checkpoint-password-ui`, `stato-multiutente-completato`, `checkpoint-pre-link-documenti`; su GitHub è presente solo `checkpoint-pre-avanzo-mensile`;
+- archivi locali `budget-v1.1.0-env.tar.gz` e `budget-v1.2.0-dashboard-v2.tar.gz`, esclusi da Git.
 
 ---
 

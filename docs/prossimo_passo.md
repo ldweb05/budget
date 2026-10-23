@@ -28,28 +28,9 @@ Completato:
 - conservazione della scadenza originaria e della data effettiva di pagamento;
 - isolamento multiutente delle Spese programmate.
 - collegamento facoltativo delle Spese fisse a un documento esterno (Paperless-ngx o Google Drive) tramite link, con descrizione cliccabile in colore orangered (2026-10-23).
-- configurazione del dominio dinamico `budget-casa.duckdns.org`;
-- aggiornamento automatico dell'indirizzo IPv4 tramite container DuckDNS;
-- aggiunta di Caddy come reverse proxy HTTPS;
-- compilazione di Caddy con il modulo DNS DuckDNS;
-- emissione e rinnovo automatico del certificato Let's Encrypt tramite DNS challenge;
-- pubblicazione HTTPS sulla porta TCP `60443`;
-- inoltro del traffico da IliadBox a OpenWrt e quindi al Raspberry;
-- verifica completa dell'accesso remoto tramite `https://budget-casa.duckdns.org:60443`;
+- accesso remoto esclusivamente tramite tunnel WireGuard, HTTP sulla porta `8085`.
 
 ## Prossimo intervento
-
-### Chiusura configurazione HTTPS
-
-1. Eseguire le verifiche finali Docker Compose e Git.
-2. Controllare che `.env` non sia tracciato.
-3. Verificare che il diff contenga esclusivamente:
-   - `docker-compose.yml`;
-   - `Dockerfile.caddy`;
-   - `Caddyfile`;
-   - documentazione aggiornata.
-4. Creare il commit della configurazione HTTPS.
-5. Eseguire il push sul repository remoto configurato.
 
 ### Validazione completa dall'interfaccia
 
