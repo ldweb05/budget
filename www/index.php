@@ -1156,11 +1156,12 @@ $preferiti_query = $preferiti_stmt->get_result();
                     <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
                         <?php
                         $rs_elenco_stmt = $conn->prepare(
-                            "SELECT v.id AS voce_id, v.descrizione, r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento
+                            "SELECT v.id AS voce_id, v.descrizione, r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
+                                    (SELECT MIN(r3.data_scadenza) FROM rate_spese_scadenza r3 WHERE r3.voce_id = v.id AND r3.pagata = 0) AS prossima_scadenza
                              FROM voci_spese_scadenza v
                              INNER JOIN rate_spese_scadenza r ON r.voce_id = v.id
                              WHERE v.utente_id = ?
-                             ORDER BY v.descrizione, v.id, r.numero_rata"
+                             ORDER BY (prossima_scadenza IS NULL), prossima_scadenza, v.id, r.data_scadenza, r.numero_rata"
                         );
                         $rs_elenco_stmt->bind_param("i", $utente_id);
                         $rs_elenco_stmt->execute();

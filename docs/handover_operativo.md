@@ -266,3 +266,11 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Test preventivo nel sandbox (PHP + MariaDB): creazione, PAGATO e rimozione, link (rifiuto di URL non http/https), modifica solo su rate non pagate, eliminazione, isolamento tra utenti, calcolo del budget e riporto dell'avanzo al mese successivo.
 - Test funzionale reale nel browser da parte dell'utente: creazione voce, scadenza, link e calcolo.
 - Punto di ripristino: dump e archivio del 2026-10-23 12:34 in `~/backups/budget/`, tag `checkpoint-pre-spese-scadenza`.
+
+---
+
+# 2026-10-23 — Ordinamento delle Spese fisse a scadenza
+
+- Corretto l'ordinamento dell'elenco "Gestisci voci e rate" nel Pannello Gestione Mese, prima alfabetico per descrizione: ora le voci sono ordinate per prossima scadenza da pagare, quelle con tutte le rate pagate vanno in fondo e le rate di ogni voce sono in ordine di data.
+- File toccato: `www/index.php` (solo la query dell'elenco; calcoli del budget e card della dashboard invariati).
+- Punto di ripristino: tag `checkpoint-pre-ordine-scadenze` e backup del 2026-10-23 17:32 in `~/backups/budget/`.

@@ -191,5 +191,6 @@ Tutto il codice è in `www/index.php`:
 - funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
 - il totale viene sottratto in tutti e tre i punti di calcolo del budget: dashboard, riporto dell'avanzo dal mese precedente e controllo degli imprevisti all'inserimento di una spesa;
 - visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e riquadro di gestione nel Pannello Gestione Mese.
+- l'elenco "Gestisci voci e rate" è ordinato per prossima scadenza da pagare (voci con tutte le rate pagate in fondo) e, dentro ogni voce, per data di scadenza.
 
 Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scadenza.utente_id`. I link sono validati con `normalizza_link_documento()`.
