@@ -641,7 +641,13 @@ if (isset($_GET['delete_variabile'])) {
 // Azione: Aggiorna Password Utente
 if (isset($_POST['update_password'])) {
     $nuova_password = trim($_POST['nuova_password']);
+    $conferma_password = trim($_POST['conferma_password'] ?? '');
     $utente_id = intval($_SESSION['utente_id'] ?? 0);
+
+    if ($nuova_password !== $conferma_password) {
+        header("Location: index.php?password=diverse");
+        exit;
+    }
 
     if (!empty($nuova_password) && $utente_id > 0) {
         $password_hash = password_hash($nuova_password, PASSWORD_DEFAULT);
@@ -654,6 +660,8 @@ if (isset($_POST['update_password'])) {
         $stmt->bind_param("si", $password_hash, $utente_id);
         $stmt->execute();
         $stmt->close();
+        header("Location: index.php?password=aggiornata");
+        exit;
     }
 
     header("Location: index.php");
@@ -719,30 +727,69 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         </div>
     </header>
 
+    <?php if (($_GET['password'] ?? '') === 'aggiornata'): ?>
+        <div class="max-w-4xl mx-auto px-4 mt-4"><p class="bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-4 py-2 rounded-xl">✅ Password aggiornata.</p></div>
+    <?php elseif (($_GET['password'] ?? '') === 'diverse'): ?>
+        <div class="max-w-4xl mx-auto px-4 mt-4"><p class="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-2 rounded-xl">Le due password non coincidono: la password non è stata cambiata.</p></div>
+    <?php endif; ?>
+
     <dialog id="dialog-password" onclick="if (event.target === this) { this.close(); }" class="rounded-2xl p-0 w-[calc(100%-2rem)] max-w-sm shadow-xl backdrop:bg-black/50">
-        <form method="POST" class="p-5 space-y-3">
+        <form method="POST" onsubmit="return verificaNuovaPassword(this)" class="p-5 space-y-3">
             <h3 class="text-sm font-bold text-gray-700">🔑 Cambia Password</h3>
-            <input
-                type="password"
-                id="nuova-password"
-                name="nuova_password"
-                placeholder="Nuova password"
-                required
-                autocomplete="new-password"
-                class="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <div class="relative">
+                <input
+                    type="password"
+                    id="nuova-password"
+                    name="nuova_password"
+                    placeholder="Nuova password"
+                    required
+                    autocomplete="new-password"
+                    class="w-full px-3 py-2 pr-10 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button type="button" onclick="mostraNascondiPassword(this)" aria-label="Mostra o nascondi la password" class="absolute right-3 top-2 text-gray-400 hover:text-gray-600">👁️</button>
+            </div>
+            <div class="relative">
+                <input
+                    type="password"
+                    id="conferma-password"
+                    name="conferma_password"
+                    placeholder="Ripeti password"
+                    required
+                    autocomplete="new-password"
+                    class="w-full px-3 py-2 pr-10 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button type="button" onclick="mostraNascondiPassword(this)" aria-label="Mostra o nascondi la password" class="absolute right-3 top-2 text-gray-400 hover:text-gray-600">👁️</button>
+            </div>
+            <p id="errore-password" class="hidden text-xs text-red-600 font-semibold">Le due password non coincidono.</p>
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="this.closest('dialog').close()" class="border border-gray-300 text-gray-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition">Annulla</button>
                 <button
                     type="submit"
                     name="update_password"
-                    onclick="return confirm('Vuoi cambiare la password di accesso?')"
                     class="bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-900 transition"
                 >
                     Aggiorna
                 </button>
             </div>
         </form>
+        <script>
+            function mostraNascondiPassword(pulsante) {
+                const campo = pulsante.previousElementSibling;
+                const visibile = campo.type === 'password';
+                campo.type = visibile ? 'text' : 'password';
+                pulsante.textContent = visibile ? '🙈' : '👁️';
+            }
+            function verificaNuovaPassword(modulo) {
+                const errore = document.getElementById('errore-password');
+                if (modulo.nuova_password.value.trim() !== modulo.conferma_password.value.trim()) {
+                    errore.classList.remove('hidden');
+                    modulo.conferma_password.focus();
+                    return false;
+                }
+                errore.classList.add('hidden');
+                return confirm('Vuoi cambiare la password di accesso?');
+            }
+        </script>
     </dialog>
 
     <main class="max-w-4xl mx-auto px-4 mt-6">

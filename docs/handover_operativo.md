@@ -335,3 +335,11 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Test nel sandbox con Tailwind compilato localmente: screenshot a larghezza computer e telefono, apertura e chiusura del popup, salvataggio di entrata e percentuale con ritorno al Salvadanaio e versamento automatico aggiornato.
 - Test funzionale reale nel browser da parte dell'utente.
 - Punto di ripristino: tag `checkpoint-pre-riorganizzazione` e backup del 2026-10-24 09:13 in `~/backups/budget/`.
+
+---
+
+# 2026-10-24 — Ripeti password nel popup
+
+- Aggiunti al popup "Cambia Password" il campo "Ripeti password" e l'icona 👁️ / 🙈 su entrambi i campi, come nella pagina di login.
+- La password viene salvata solo se i due campi coincidono: controllo nel browser (messaggio in rosso, nessun invio) e nell'azione `update_password`; dopo il salvataggio compare "✅ Password aggiornata.".
+- File toccato: `www/index.php`. Punto di ripristino: tag `checkpoint-pre-ripeti-password`.

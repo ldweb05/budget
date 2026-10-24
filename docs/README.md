@@ -206,6 +206,6 @@ Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scade
 
 - `www/index.php`: contenitore `flex flex-col` su telefono e `md:grid md:grid-cols-2` su computer; le due colonne usano `contents md:block`, così su telefono le card seguono le classi `order-1`…`order-6` e su computer restano in due colonne indipendenti senza spazi vuoti.
 - Il Pannello Gestione Mese è stato eliminato: "Gestisci Spese Fisse" e "Piani a scadenza" sono card autonome.
-- Cambia Password: elemento `<dialog id="dialog-password">` aperto dal pulsante 🔑 del menu; l'azione `update_password` è invariata.
+- Cambia Password: elemento `<dialog id="dialog-password">` aperto dal pulsante 🔑 del menu, con campo "Ripeti password" (`conferma_password`) e icona 👁️; `update_password` salva solo se le due password coincidono (controllo anche lato client) e mostra l'esito con `?password=aggiornata` o `?password=diverse`.
 - Entrata e percentuale: il modulo è in `www/salvadanaio.php` e invia all'azione `update_budget` di `www/index.php` (nessuna logica duplicata) con il campo `torna=salvadanaio`, che fa tornare al Salvadanaio dopo il salvataggio.
 - Il link 🐷 della dashboard passa `mese` e `anno` a `salvadanaio.php`, che li valida (altrimenti usa il mese corrente), mostra la percentuale reale nel titolo e riporta 🏠 Home alla dashboard dello stesso mese.

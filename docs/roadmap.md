@@ -195,4 +195,5 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - ✅ Eliminato il Pannello Gestione Mese: card autonome disposte in due colonne senza spazi vuoti.
 - ✅ Ordine dedicato per il telefono: budget e Spese Fisse con le scadenze per primi.
 - ✅ Cambia Password in un popup dal menu.
+- ✅ Campo "Ripeti password" e icona 👁️ per mostrare la password nel popup.
 - ✅ Entrata mensile e percentuale spostate nella pagina Salvadanaio, con percentuale reale nel titolo.
