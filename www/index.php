@@ -727,6 +727,77 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         </div>
     </header>
 
+    <?php
+    // ---------------------------------------------------------
+    // Stato del backup notturno (tabella backup_stato, scritta da ~/budget-backup.sh)
+    // ---------------------------------------------------------
+    $bk_ultimo = null;
+    $bk_ultimo_ok = null;
+    try {
+        $bk_ris = $conn->query("SELECT eseguito_il, esito, fase, dettaglio FROM backup_stato ORDER BY eseguito_il DESC, id DESC LIMIT 1");
+        $bk_ultimo = $bk_ris ? $bk_ris->fetch_assoc() : null;
+        $bk_ris = $conn->query("SELECT eseguito_il FROM backup_stato WHERE esito = 'ok' ORDER BY eseguito_il DESC, id DESC LIMIT 1");
+        $bk_ultimo_ok = $bk_ris ? $bk_ris->fetch_assoc() : null;
+    } catch (Throwable $e) {
+        $bk_ultimo = null;
+        $bk_ultimo_ok = null;
+    }
+    $bk_motivi = [
+        '0' => 'configurazione o database non disponibili (file .env, chiave SSH o container del database)',
+        '1' => 'lettura della configurazione del database non riuscita',
+        '2' => 'creazione del dump del database non riuscita',
+        '3' => 'copia dei file di configurazione non riuscita',
+        '4' => 'dump del database incompleto o corrotto',
+        '5' => 'calcolo dei checksum non riuscito',
+        '6' => 'archivio corrotto o spazio esaurito sul Raspberry',
+        '7' => 'router o disco di backup non raggiungibile (rete assente, router spento o disco non montato)',
+        '8' => 'copia sul router non riuscita o archivio corrotto durante la copia (checksum diverso)',
+        '9' => 'pulizia finale non riuscita (il backup potrebbe comunque essere presente sul router)',
+    ];
+    $bk_formatta = function ($data_ora) {
+        $t = strtotime($data_ora);
+        if (date('Y-m-d', $t) === date('Y-m-d')) {
+            return 'oggi alle ' . date('H:i', $t);
+        }
+        if (date('Y-m-d', $t) === date('Y-m-d', strtotime('-1 day'))) {
+            return 'ieri alle ' . date('H:i', $t);
+        }
+        return 'il ' . date('d/m/Y', $t) . ' alle ' . date('H:i', $t);
+    };
+    $bk_avvio_raspberry = null;
+    $bk_uptime = @file_get_contents('/proc/uptime');
+    if ($bk_uptime !== false) {
+        $bk_avvio_raspberry = time() - intval(floatval(explode(' ', trim($bk_uptime))[0]));
+    }
+    $bk_ok_recente = $bk_ultimo_ok && strtotime($bk_ultimo_ok['eseguito_il']) >= strtotime('-48 hours');
+    $bk_errore_recente = $bk_ultimo && $bk_ultimo['esito'] === 'errore';
+    ?>
+    <?php if ($bk_errore_recente): ?>
+        <div class="max-w-4xl mx-auto px-4 mt-4">
+            <div class="bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-3 rounded-xl">
+                <p class="font-bold">⚠️ Backup del database non riuscito <?php echo htmlspecialchars($bk_formatta($bk_ultimo['eseguito_il'])); ?></p>
+                <p class="mt-1">Motivo: <?php echo htmlspecialchars($bk_motivi[$bk_ultimo['fase']] ?? ('errore nella fase ' . $bk_ultimo['fase'])); ?> (fase <?php echo htmlspecialchars($bk_ultimo['fase']); ?>/9).</p>
+                <?php if (!empty($bk_ultimo['dettaglio'])): ?>
+                    <p class="mt-1 font-mono text-[10px] text-red-500 break-all"><?php echo htmlspecialchars($bk_ultimo['dettaglio']); ?></p>
+                <?php endif; ?>
+                <p class="mt-1 text-red-600">Ultimo backup riuscito: <?php echo $bk_ultimo_ok ? htmlspecialchars($bk_formatta($bk_ultimo_ok['eseguito_il'])) : 'nessuno registrato'; ?>.</p>
+            </div>
+        </div>
+    <?php elseif (!$bk_ok_recente): ?>
+        <div class="max-w-4xl mx-auto px-4 mt-4">
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 rounded-xl">
+                <p class="font-bold">⚠️ <?php echo $bk_ultimo_ok ? 'Nessun backup del database da ' . max(2, intval((time() - strtotime($bk_ultimo_ok['eseguito_il'])) / 86400)) . ' giorni' : 'Nessun backup del database registrato'; ?></p>
+                <p class="mt-1">Lo script non è partito o non ha potuto registrare l'esito: probabilmente il Raspberry era spento (es. mancanza di corrente) oppure il database era fermo.</p>
+                <p class="mt-1">
+                    Ultimo backup riuscito: <?php echo $bk_ultimo_ok ? htmlspecialchars($bk_formatta($bk_ultimo_ok['eseguito_il'])) : 'nessuno'; ?>.
+                    <?php if ($bk_avvio_raspberry): ?>
+                        Ultimo avvio del Raspberry: <?php echo htmlspecialchars($bk_formatta(date('Y-m-d H:i:s', $bk_avvio_raspberry))); ?>.
+                    <?php endif; ?>
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php if (($_GET['password'] ?? '') === 'aggiornata'): ?>
         <div class="max-w-4xl mx-auto px-4 mt-4"><p class="bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-4 py-2 rounded-xl">✅ Password aggiornata.</p></div>
     <?php elseif (($_GET['password'] ?? '') === 'diverse'): ?>
@@ -1015,7 +1086,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                     <form method="POST" class="space-y-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <input type="text" id="descrizione-spesa" name="descrizione" placeholder="Es. Supermercato" required autofocus class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="descrizione-spesa" name="descrizione" placeholder="Es. Supermercato" required class="flex-1 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <input type="number" id="importo-spesa" step="0.01" name="importo" placeholder="€" required class="w-full sm:w-24 px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -1152,7 +1223,7 @@ $preferiti_query = $preferiti_stmt->get_result();
                         <div class="gruppo-piano py-2 text-xs" data-id="<?php echo $rs_piano_id; ?>" data-nome="<?php echo htmlspecialchars(mb_strtolower($rs_piano['descrizione']), ENT_QUOTES); ?>">
                             <div class="flex justify-between items-center gap-2">
                                 <span class="min-w-0">
-                                    <button type="button" onclick="apriChiudiPiano(this.closest('.gruppo-piano'))" class="text-left font-bold text-gray-700 hover:text-[#008080]"><span class="freccia-piano inline-block w-3 text-gray-400">▸</span> <?php echo htmlspecialchars($rs_piano['descrizione']); ?></button>
+                                    <button type="button" onclick="apriChiudiPiano(this.closest('.gruppo-piano'))" class="text-left font-bold text-[#FF4500] hover:text-[#A3A33F] transition-colors"><span class="freccia-piano inline-block w-3 text-gray-400">▸</span> <?php echo htmlspecialchars($rs_piano['descrizione']); ?></button>
                                     <span class="text-[10px] text-gray-400">
                                         · <?php echo intval($rs_piano['rate_inserite']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> rate inserite
                                     </span>
@@ -1389,8 +1460,19 @@ $preferiti_query = $preferiti_stmt->get_result();
     <?php endif; ?>
     </main>
 
+    <footer class="max-w-4xl mx-auto px-4 mt-8 text-center text-[11px] text-gray-400">
+        <?php if ($bk_ultimo_ok): ?>
+            Ultimo backup del database: <?php echo htmlspecialchars($bk_formatta($bk_ultimo_ok['eseguito_il'])); ?> <?php echo $bk_ok_recente && !$bk_errore_recente ? '✓' : '⚠️'; ?>
+        <?php else: ?>
+            Ultimo backup del database: nessuno registrato ⚠️
+        <?php endif; ?>
+    </footer>
+
     <script>
         const descrizioneSpesa = document.getElementById('descrizione-spesa');
+        if (descrizioneSpesa && window.matchMedia('(min-width: 768px)').matches) {
+            descrizioneSpesa.focus();
+        }
         const importoSpesa = document.getElementById('importo-spesa');
 
         document.querySelectorAll('.preferito-spesa').forEach(function (preferito) {

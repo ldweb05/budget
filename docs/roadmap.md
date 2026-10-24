@@ -197,3 +197,17 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - ✅ Cambia Password in un popup dal menu.
 - ✅ Campo "Ripeti password" e icona 👁️ per mostrare la password nel popup.
 - ✅ Entrata mensile e percentuale spostate nella pagina Salvadanaio, con percentuale reale nel titolo.
+
+---
+
+# Backup del database
+
+## Stato
+
+✅ Completato il 2026-10-24.
+
+- ✅ Backup notturno (prima settimanale) del database e di `.env` sul disco del router, ultimi 30 conservati.
+- ✅ Prova di ripristino completata in un container temporaneo.
+- ✅ Esito registrato nella tabella `backup_stato` con fase e motivo in caso di errore.
+- ✅ Avviso in dashboard (rosso: backup non riuscito; giallo: nessun backup da più di 2 giorni) e riga "Ultimo backup" in fondo alla pagina.
+- ✅ Permessi `600` su `.env`, punti di ripristino e log; eliminati vecchi archivi locali con credenziali dismesse.

@@ -74,6 +74,9 @@ L'utente lo visualizza solo entrando volontariamente nella relativa sezione.
 - Ogni funzione è una card autonoma con lo stesso stile; non esistono pannelli che raggruppano altre card.
 - Le funzioni usate raramente stanno fuori dalla dashboard: Cambia Password in un popup aperto dal pulsante 🔑 del menu, Entrata mensile e percentuale nella pagina Salvadanaio.
 - Il menu va a capo automaticamente sugli schermi stretti.
+- Su telefono la pagina si apre sempre in alto: il cursore automatico nel campo "Aggiungi Spesa" è attivo solo sugli schermi larghi.
+- I nomi dei piani nella card "Piani a scadenza" sono in orangered (`#FF4500`), come le voci collegate a un documento, e diventano verde oliva chiaro (`#A3A33F`) al passaggio del mouse.
+- Gli avvisi sul backup compaiono in alto solo in caso di problema; lo stato normale è una riga discreta in fondo alla pagina.
 
 ---
 

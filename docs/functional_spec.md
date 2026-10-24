@@ -193,4 +193,13 @@ Le altre informazioni devono essere secondarie.
 
 ---
 
+# Backup del database
+
+- Il database viene salvato automaticamente ogni notte sul disco esterno collegato al router; vengono conservati gli ultimi 30 backup.
+- Se l'ultimo backup non è riuscito, la dashboard mostra in alto un avviso rosso con data, motivo (fase in cui si è fermato) e data dell'ultimo backup riuscito.
+- Se non risulta alcun backup riuscito da più di 2 giorni, la dashboard mostra un avviso giallo con l'ultimo avvio del Raspberry (utile per riconoscere una mancanza di corrente).
+- Se tutto è regolare non compare alcun avviso: in fondo alla pagina resta solo la riga "Ultimo backup del database: … ✓".
+
+---
+
 Questo documento rappresenta la base funzionale della versione 2 del progetto.

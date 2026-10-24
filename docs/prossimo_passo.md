@@ -31,6 +31,7 @@ Completato:
 - Spese fisse a scadenza (es. rate F24): rate con date reali, visibili nella dashboard sotto "Spese Fisse (NON considerate nel budget)", scalate dal budget solo quando pagate nel mese del pagamento, con link documento per rata (2026-10-23).
 - Spese fisse a scadenza organizzate in piani di pagamento (nome + numero di rate) con rate aggiunte una alla volta, "Rata N/Totale", piani collassabili e filtro di ricerca (2026-10-24).
 - Riorganizzazione della dashboard: card autonome in due colonne senza spazi vuoti, ordine dedicato su telefono, Cambia Password in un popup dal menu, Entrata e percentuale nella pagina Salvadanaio (2026-10-24).
+- Backup del database ogni notte sul disco del router (ultimi 30), ripristino provato, esito in `backup_stato` e avviso in dashboard se il backup non riesce (2026-10-24).
 - accesso remoto esclusivamente tramite tunnel WireGuard, HTTP sulla porta `8085`.
 
 ## Prossimo intervento

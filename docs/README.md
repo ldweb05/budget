@@ -39,6 +39,7 @@ Componenti principali verificati:
 - `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;
 - `migrations/009_create_spese_scadenza.sql`: tabelle `voci_spese_scadenza` e `rate_spese_scadenza` delle Spese fisse a scadenza;
 - `migrations/010_piani_spese_scadenza.sql`: colonna `numero_rate` dei piani e indice non univoco su (`voce_id`, `numero_rata`);
+- `migrations/011_create_backup_stato.sql`: tabella `backup_stato` con l'esito dei backup notturni;
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
 
@@ -209,3 +210,15 @@ Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scade
 - Cambia Password: elemento `<dialog id="dialog-password">` aperto dal pulsante 🔑 del menu, con campo "Ripeti password" (`conferma_password`) e icona 👁️; `update_password` salva solo se le due password coincidono (controllo anche lato client) e mostra l'esito con `?password=aggiornata` o `?password=diverse`.
 - Entrata e percentuale: il modulo è in `www/salvadanaio.php` e invia all'azione `update_budget` di `www/index.php` (nessuna logica duplicata) con il campo `torna=salvadanaio`, che fa tornare al Salvadanaio dopo il salvataggio.
 - Il link 🐷 della dashboard passa `mese` e `anno` a `salvadanaio.php`, che li valida (altrimenti usa il mese corrente), mostra la percentuale reale nel titolo e riporta 🏠 Home alla dashboard dello stesso mese.
+
+---
+
+# Backup del database
+
+- Script: `/home/lorenzo/budget-backup.sh`, fuori dal repository (riguarda il Raspberry, non il codice). Avviato da crontab ogni notte alle 03:30 (`30 3 * * *`), log in `~/backups/logs/`.
+- Contenuto dell'archivio: dump completo di `budget_db` (`--single-transaction --routines --triggers --events`), `.env`, `docker-compose.yml`, istruzioni di ripristino e checksum SHA256.
+- Destinazione: disco del router `root@192.168.2.1:/mnt/backup/backup_budget/` via SSH con chiave `~/.ssh/backup_key`; checksum verificato anche sul router; conservati gli ultimi 30 archivi (`REMOTE_KEEP=30`); sul Raspberry resta solo il log.
+- Esito: la funzione `registra_esito` dello script scrive in `backup_stato` una riga `ok` a fine backup oppure, tramite il trap `EXIT`, una riga `errore` con la fase (0-9) e l'ultima riga di errore del log; le righe più vecchie di 180 giorni vengono eliminate. `backup_stato` è una tabella di sistema senza `utente_id` perché non contiene dati finanziari.
+- Dashboard (`www/index.php`): avviso rosso se l'ultima riga è un errore, avviso giallo se non c'è un `ok` nelle ultime 48 ore (con l'ultimo avvio del Raspberry letto da `/proc/uptime`), altrimenti solo la riga in fondo alla pagina. Le query sono in un `try/catch`: se la tabella manca la dashboard funziona comunque.
+- Ripristino: istruzioni in `README_RIPRISTINO.md` dentro ogni archivio. Il ripristino è stato provato il 2026-10-24 caricando il dump in un container MariaDB temporaneo: tutte le tabelle coincidevano con il database attivo.
+- Prima di ogni modifica i punti di ripristino manuali vanno in `~/backups/budget/` con `umask 077` (file `600`), sullo stesso disco del Raspberry: non sostituiscono il backup sul router.
