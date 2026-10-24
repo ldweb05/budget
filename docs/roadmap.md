@@ -182,4 +182,17 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - ✅ Isolamento per utente; Spese programmate invariate.
 - ✅ Piani di pagamento con numero totale di rate e rate aggiunte una alla volta (2026-10-24).
 - ✅ Numero della rata reale ("Rata N/Totale"), modificabile, e spostamento delle rate tra piani.
-- ✅ Piani collassabili e filtro di ricerca testuale nel Pannello Gestione Mese.
+- ✅ Piani collassabili e filtro di ricerca testuale.
+
+---
+
+# Riorganizzazione della dashboard
+
+## Stato
+
+✅ Completato il 2026-10-24.
+
+- ✅ Eliminato il Pannello Gestione Mese: card autonome disposte in due colonne senza spazi vuoti.
+- ✅ Ordine dedicato per il telefono: budget e Spese Fisse con le scadenze per primi.
+- ✅ Cambia Password in un popup dal menu.
+- ✅ Entrata mensile e percentuale spostate nella pagina Salvadanaio, con percentuale reale nel titolo.

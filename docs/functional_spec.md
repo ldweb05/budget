@@ -34,6 +34,7 @@ Quando viene registrata una nuova entrata:
 Il Salvadanaio:
 
 - utilizza una percentuale configurabile e modificabile dall'utente;
+- entrata mensile e percentuale del mese si modificano dalla pagina Salvadanaio, riferite al mese aperto nella dashboard;
 - riceve automaticamente una quota di ogni nuova entrata;
 - aggiorna automaticamente la quota quando cambiano entrata o percentuale;
 - collega ogni movimento automatico al relativo mese;
@@ -86,7 +87,7 @@ Regole:
 - il numero totale di rate del piano è modificabile;
 - ogni rata può essere collegata a un documento esterno (Paperless-ngx o Google Drive) tramite link, anche dopo il pagamento, con la stessa resa delle spese fisse (descrizione cliccabile in orangered);
 - l'eliminazione di un piano elimina tutte le sue rate;
-- nel Pannello Gestione Mese i piani sono collassabili (chiusi di default, il browser ricorda quelli aperti), ordinati per prossima scadenza da pagare (piani senza rate in alto, saldati in fondo) e filtrabili con un campo di ricerca testuale (es. "F24", "Cedolare 2024");
+- nella card "Piani a scadenza" della dashboard i piani sono collassabili (chiusi di default, il browser ricorda quelli aperti), ordinati per prossima scadenza da pagare (piani senza rate in alto, saldati in fondo) e filtrabili con un campo di ricerca testuale (es. "F24", "Cedolare 2024");
 - non modificano il Salvadanaio e rispettano l'isolamento dei dati per utente.
 
 ---

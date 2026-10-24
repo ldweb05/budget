@@ -306,3 +306,32 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 ## Punto di ripristino
 
 - Tag `checkpoint-pre-piani-scadenza` e backup del 2026-10-24 08:20 in `~/backups/budget/`.
+
+---
+
+# 2026-10-24 — Riorganizzazione della dashboard
+
+## Cosa è stato fatto
+
+- Eliminato il Pannello Gestione Mese: "⚙️ Gestisci Spese Fisse" e "🗓️ Piani a scadenza (NON nel budget)" sono ora card autonome come le altre.
+- Nuova disposizione: su computer due colonne indipendenti (sinistra budget, Aggiungi Spesa, Gestisci Spese Fisse, Piani; destra Spese Fisse con le scadenze, Ultime Spese Varie); su telefono una colonna con budget e Spese Fisse per primi.
+- "Cambia Password" spostato in un popup aperto dal pulsante 🔑 del menu; il menu va a capo sugli schermi stretti.
+- "Modifica Entrata e Salvadanaio" spostato nella pagina Salvadanaio, riferito al mese aperto nella dashboard; il titolo della pagina mostra la percentuale reale al posto di "(15%)" fisso.
+
+## File toccati
+
+- `www/index.php`: menu, `<dialog>` password, nuova disposizione delle card, link 🐷 con mese e anno, ritorno al Salvadanaio nell'azione `update_budget` (campo `torna`).
+- `www/salvadanaio.php`: mese di riferimento validato, riquadro "Entrata e Salvadanaio", titolo con la percentuale, 🏠 Home verso il mese corretto.
+
+## Decisioni tecniche
+
+- Due colonne indipendenti invece di un layout "a mattoncini" automatico: aprendo o chiudendo un piano le card non cambiano colonna.
+- Ordine su telefono ottenuto con `contents` + `order-N` sullo stesso HTML, senza duplicare markup.
+- Popup con l'elemento nativo `<dialog>` (Esc, clic fuori e Annulla per chiudere), più adatto al telefono di un tooltip.
+- Il modulo del Salvadanaio riusa l'azione `update_budget` di `index.php` per non duplicare la sincronizzazione del versamento automatico.
+
+## Verifiche
+
+- Test nel sandbox con Tailwind compilato localmente: screenshot a larghezza computer e telefono, apertura e chiusura del popup, salvataggio di entrata e percentuale con ritorno al Salvadanaio e versamento automatico aggiornato.
+- Test funzionale reale nel browser da parte dell'utente.
+- Punto di ripristino: tag `checkpoint-pre-riorganizzazione` e backup del 2026-10-24 09:13 in `~/backups/budget/`.

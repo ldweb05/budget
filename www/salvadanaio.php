@@ -49,6 +49,21 @@ $tot_prelievi = $stmt_prelievi->get_result()->fetch_assoc()['totale'] ?? 0;
 $stmt_prelievi->close();
 
 $saldo_fondo = $tot_versamenti - $tot_prelievi;
+
+// Mese di riferimento per entrata e percentuale (passato dalla dashboard, altrimenti il mese corrente)
+$mesi_it = ["January" => "Gennaio", "February" => "Febbraio", "March" => "Marzo", "April" => "Aprile", "May" => "Maggio", "June" => "Giugno", "July" => "Luglio", "August" => "Agosto", "September" => "Settembre", "October" => "Ottobre", "November" => "Novembre", "December" => "Dicembre"];
+$mese_rif = $_GET['mese'] ?? date('F');
+$anno_rif = intval($_GET['anno'] ?? date('Y'));
+if (!isset($mesi_it[$mese_rif]) || $anno_rif < 2000 || $anno_rif > 2100) {
+    $mese_rif = date('F');
+    $anno_rif = intval(date('Y'));
+}
+$stmt_mese_rif = $conn->prepare("SELECT id, entrata, percentuale_risparmio FROM mesi WHERE utente_id = ? AND nome = ? AND anno = ?");
+$stmt_mese_rif->bind_param("isi", $utente_id, $mese_rif, $anno_rif);
+$stmt_mese_rif->execute();
+$dati_mese_rif = $stmt_mese_rif->get_result()->fetch_assoc();
+$stmt_mese_rif->close();
+$percentuale_rif = $dati_mese_rif ? rtrim(rtrim(number_format(floatval($dati_mese_rif['percentuale_risparmio']), 2, ',', ''), '0'), ',') : null;
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -63,10 +78,10 @@ $saldo_fondo = $tot_versamenti - $tot_prelievi;
     <header class="bg-[#008080] text-white py-4 shadow-md sticky top-0 z-40 px-4">
         <div class="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div>
-                <h1 class="text-lg sm:text-xl font-bold tracking-wide">🐷 FONDO RISPARMI (15%)</h1>
+                <h1 class="text-lg sm:text-xl font-bold tracking-wide">🐷 FONDO RISPARMI<?php echo $percentuale_rif !== null ? ' (' . $percentuale_rif . '%)' : ''; ?></h1>
                 <p class="text-sm opacity-90">Il tuo paracadute finanziario</p>
             </div>
-            <a href="index.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-4 py-2 rounded-xl border border-white/20 transition">🏠 Home</a>
+            <a href="index.php?mese=<?php echo urlencode($mese_rif); ?>&anno=<?php echo $anno_rif; ?>" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-4 py-2 rounded-xl border border-white/20 transition">🏠 Home</a>
         </div>
     </header>
 
@@ -82,6 +97,25 @@ $saldo_fondo = $tot_versamenti - $tot_prelievi;
                     Versati totali: +<?php echo number_format($tot_versamenti, 2, ',', '.'); ?>€<br>
                     Prelevati/Sforati totali: -<?php echo number_format($tot_prelievi, 2, ',', '.'); ?>€
                 </p>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-700 mb-3">💶 Entrata e Salvadanaio — <?php echo $mesi_it[$mese_rif] . ' ' . $anno_rif; ?></h3>
+                <?php if ($dati_mese_rif): ?>
+                    <form method="POST" action="index.php?mese=<?php echo urlencode($mese_rif); ?>&anno=<?php echo $anno_rif; ?>" class="space-y-3">
+                        <input type="hidden" name="mese_id" value="<?php echo intval($dati_mese_rif['id']); ?>">
+                        <input type="hidden" name="torna" value="salvadanaio">
+                        <label class="block text-[11px] text-gray-500">Entrata mensile (€)
+                            <input type="number" step="0.01" min="0" name="nuova_entrata" required value="<?php echo htmlspecialchars($dati_mese_rif['entrata'], ENT_QUOTES); ?>" class="mt-1 w-full px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </label>
+                        <label class="block text-[11px] text-gray-500">Percentuale al Salvadanaio (%)
+                            <input type="number" step="0.01" min="0" max="100" name="nuova_percentuale" required value="<?php echo htmlspecialchars($dati_mese_rif['percentuale_risparmio'], ENT_QUOTES); ?>" class="mt-1 w-full px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </label>
+                        <button type="submit" name="update_budget" class="w-full bg-[#12A0D7] text-white font-semibold py-2 rounded-xl text-xs shadow-sm hover:opacity-90 transition">Salva</button>
+                    </form>
+                <?php else: ?>
+                    <p class="text-xs text-gray-400">Il mese non è ancora stato configurato: inizialo dalla dashboard.</p>
+                <?php endif; ?>
             </div>
 
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">

@@ -192,9 +192,11 @@ if (isset($_POST['update_budget'])) {
     $nuova_entrata = floatval($_POST['nuova_entrata']);
     $percentuale_risparmio = floatval($_POST['nuova_percentuale']);
     $data_oggi = date('Y-m-d');
+    // Il modulo si trova nella pagina Salvadanaio: dopo il salvataggio si torna lì
+    $pagina_ritorno = (($_POST['torna'] ?? '') === 'salvadanaio') ? 'salvadanaio.php' : 'index.php';
 
     if ($percentuale_risparmio < 0 || $percentuale_risparmio > 100) {
-        header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+        header("Location: $pagina_ritorno?mese=" . urlencode($mese_attivo) . "&anno=$anno_attivo");
         exit;
     }
 
@@ -235,7 +237,7 @@ if (isset($_POST['update_budget'])) {
         $stmt_elimina_fondo->close();
     }
 
-    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    header("Location: $pagina_ritorno?mese=" . urlencode($mese_attivo) . "&anno=$anno_attivo");
     exit;
 }
 
@@ -688,16 +690,19 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                 <p class="text-xs opacity-90"><?php echo $mese_display; ?></p>
             </div>
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                 <a href="statistiche.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     📊 Grafici
                 </a>
                 <a href="spese_programmate.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     📅 Programmate
                 </a>
-                <a href="salvadanaio.php" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
+                <a href="salvadanaio.php?mese=<?php echo urlencode($mese_attivo); ?>&anno=<?php echo intval($anno_attivo); ?>" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
                     🐷 Salvadanaio
                 </a>
+                <button type="button" onclick="document.getElementById('dialog-password').showModal(); document.getElementById('nuova-password').focus();" class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/20 transition">
+                    🔑 Password
+                </button>
                 <a href="logout.php" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition">
                     🚪 Esci
                 </a>
@@ -713,6 +718,32 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             </div>
         </div>
     </header>
+
+    <dialog id="dialog-password" onclick="if (event.target === this) { this.close(); }" class="rounded-2xl p-0 w-[calc(100%-2rem)] max-w-sm shadow-xl backdrop:bg-black/50">
+        <form method="POST" class="p-5 space-y-3">
+            <h3 class="text-sm font-bold text-gray-700">🔑 Cambia Password</h3>
+            <input
+                type="password"
+                id="nuova-password"
+                name="nuova_password"
+                placeholder="Nuova password"
+                required
+                autocomplete="new-password"
+                class="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="this.closest('dialog').close()" class="border border-gray-300 text-gray-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition">Annulla</button>
+                <button
+                    type="submit"
+                    name="update_password"
+                    onclick="return confirm('Vuoi cambiare la password di accesso?')"
+                    class="bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-900 transition"
+                >
+                    Aggiorna
+                </button>
+            </div>
+        </form>
+    </dialog>
 
     <main class="max-w-4xl mx-auto px-4 mt-6">
 
@@ -907,10 +938,11 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         }
         ?>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center">
+        <!-- Telefono: una colonna, ordine dato da order-N. Computer: due colonne indipendenti, senza buchi. -->
+        <div class="flex flex-col gap-6 md:grid md:grid-cols-2 md:items-start">
+
+            <div class="contents md:block md:space-y-6">
+                <div class="order-1 md:order-none bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center">
                     <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                         <?php echo ($giorni_rimasti > 1) ? "Oggi puoi spendere massimo" : "Avanzo finale del mese"; ?>
                     </h2>
@@ -931,7 +963,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                     </p>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <div class="order-3 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
                     <h3 class="text-sm font-bold text-gray-700 mb-3">🛒 Aggiungi Spesa (Uscite, Spesa, Benzina...)</h3>
                     <form method="POST" class="space-y-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
@@ -977,156 +1009,8 @@ $preferiti_query = $preferiti_stmt->get_result();
                         </button>
                     </form>
                 </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">📌 Spese Fisse (già considerate nel budget)</h3>
-                    <ul class="divide-y divide-gray-100">
-                        <?php
-                        $spese_fisse_stmt = $conn->prepare("SELECT sf.* FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
-                        $spese_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
-                        $spese_fisse_stmt->execute();
-                        $spese_fisse_query = $spese_fisse_stmt->get_result();
-                        while ($fissa = $spese_fisse_query->fetch_assoc()):
-                        ?>
-                        <li class="py-2.5 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&toggle_fissa=<?php echo $fissa['id']; ?>" class="w-6 h-6 flex items-center justify-center rounded-md border text-sm <?php echo $fissa['pagato'] ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'; ?>">
-                                    ✓
-                                </a>
-                                <span class="text-sm <?php echo $fissa['pagato'] ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
-                                    <?php if (!empty($fissa['link_documento'])): ?>
-                                        <a href="<?php echo htmlspecialchars($fissa['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo $fissa['descrizione']; ?></a>
-                                    <?php else: ?>
-                                        <?php echo $fissa['descrizione']; ?>
-                                    <?php endif; ?>
-                                </span>
-                            </div>
-                            <span class="text-sm font-semibold <?php echo $fissa['pagato'] ? 'text-gray-400' : 'text-gray-600'; ?>">
-                                <?php echo number_format($fissa['importo'], 2, ',', '.'); ?> €
-                            </span>
-                        </li>
-                        <?php endwhile; ?>
-                    </ul>
-
-                    <?php
-                    // Rate a scadenza del mese: scadono in questo mese oppure sono state pagate in questo mese
-                    $rs_inizio_mese = sprintf('%04d-%02d-01', $anno_attivo, $numero_mese_attivo);
-                    $rs_fine_mese = date('Y-m-t', strtotime($rs_inizio_mese));
-                    $rs_stmt = $conn->prepare(
-                        "SELECT r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
-                                v.descrizione,
-                                COALESCE(v.numero_rate, (SELECT COUNT(*) FROM rate_spese_scadenza r2 WHERE r2.voce_id = r.voce_id)) AS totale_rate
-                         FROM rate_spese_scadenza r
-                         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
-                         WHERE v.utente_id = ?
-                           AND (
-                                r.data_scadenza BETWEEN ? AND ?
-                                OR (r.pagata = 1 AND r.data_pagamento BETWEEN ? AND ?)
-                           )
-                         ORDER BY r.data_scadenza, v.id, r.numero_rata"
-                    );
-                    $rs_stmt->bind_param("issss", $utente_id, $rs_inizio_mese, $rs_fine_mese, $rs_inizio_mese, $rs_fine_mese);
-                    $rs_stmt->execute();
-                    $rs_query = $rs_stmt->get_result();
-                    $rs_da_pagare = 0.0;
-                    ?>
-                    <h3 class="text-sm font-bold text-gray-700 mt-5 mb-1 pt-4 border-t border-gray-100">📌 Spese Fisse (NON considerate nel budget)</h3>
-                    <p class="text-[10px] text-gray-400 mb-2">Vengono scalate dal budget solo quando le spunti come pagate, nel mese del pagamento.</p>
-                    <ul class="divide-y divide-gray-100">
-                        <?php if ($rs_query->num_rows === 0): ?>
-                            <li class="py-2 text-xs text-gray-400">Nessuna scadenza in questo mese.</li>
-                        <?php endif; ?>
-                        <?php while ($rs_rata = $rs_query->fetch_assoc()):
-                            $rs_pagata = intval($rs_rata['pagata']) === 1;
-                            if (!$rs_pagata) {
-                                $rs_da_pagare += floatval($rs_rata['importo']);
-                            }
-                        ?>
-                        <li class="py-2.5 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&toggle_rata_scadenza=<?php echo intval($rs_rata['id']); ?>" onclick="return confirm('<?php echo $rs_pagata ? 'Togliere il PAGATO? Importo di nuovo disponibile nel budget.' : 'Segnare come PAGATA oggi? Importo scalato dal budget di questo mese.'; ?>')" title="Pagato" class="w-6 h-6 shrink-0 flex items-center justify-center rounded-md border text-sm <?php echo $rs_pagata ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'; ?>">
-                                    ✓
-                                </a>
-                                <div class="min-w-0">
-                                    <span class="text-sm <?php echo $rs_pagata ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
-                                        <?php if (!empty($rs_rata['link_documento'])): ?>
-                                            <a href="<?php echo htmlspecialchars($rs_rata['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo htmlspecialchars($rs_rata['descrizione']); ?></a>
-                                        <?php else: ?>
-                                            <?php echo htmlspecialchars($rs_rata['descrizione']); ?>
-                                        <?php endif; ?>
-                                    </span>
-                                    <p class="text-[10px] text-gray-400">
-                                        Rata <?php echo intval($rs_rata['numero_rata']); ?>/<?php echo intval($rs_rata['totale_rate']); ?>
-                                        · scadenza <?php echo date('d/m/Y', strtotime($rs_rata['data_scadenza'])); ?>
-                                        <?php if ($rs_pagata && !empty($rs_rata['data_pagamento'])): ?>
-                                            · pagata il <?php echo date('d/m/Y', strtotime($rs_rata['data_pagamento'])); ?>
-                                        <?php endif; ?>
-                                    </p>
-                                </div>
-                            </div>
-                            <span class="text-sm font-semibold shrink-0 <?php echo $rs_pagata ? 'text-gray-400' : 'text-[#FF4500]'; ?>">
-                                <?php echo number_format($rs_rata['importo'], 2, ',', '.'); ?> €
-                            </span>
-                        </li>
-                        <?php endwhile; $rs_stmt->close(); ?>
-                    </ul>
-                    <?php if ($rs_da_pagare > 0): ?>
-                        <p class="text-xs text-right text-gray-500 mt-2">Ancora da pagare: <span class="font-semibold text-[#FF4500]"><?php echo number_format($rs_da_pagare, 2, ',', '.'); ?> €</span></p>
-                    <?php endif; ?>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">🕒 Ultime Spese Varie</h3>
-                    <input
-                        type="search"
-                        id="ricerca-spese"
-                        placeholder="Cerca una spesa..."
-                        class="w-full mb-3 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                    <ul id="elenco-spese" class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-                        <?php
-                        $spese_var_stmt = $conn->prepare("SELECT sv.* FROM spese_variabili sv INNER JOIN mesi m ON m.id = sv.mese_id WHERE sv.mese_id = ? AND m.utente_id = ? ORDER BY sv.id DESC");
-                        $spese_var_stmt->bind_param("ii", $mese_id, $utente_id);
-                        $spese_var_stmt->execute();
-                        $spese_var_query = $spese_var_stmt->get_result();
-                        if ($spese_var_query->num_rows == 0):
-                            echo "<p class='text-xs text-gray-400 py-2'>Nessuna spesa registrata.</p>";
-                        endif;
-                        while ($variabile = $spese_var_query->fetch_assoc()):
-                        ?>
-                        <li class="spesa-variabile py-2 flex justify-between items-center">
-                            <div>
-                                <p class="descrizione-spesa text-sm text-gray-700 font-medium"><?php echo $variabile['descrizione']; ?></p>
-                                <p class="text-[10px] text-gray-400">
-                                    <?php echo date('d/m', strtotime($variabile['data_spesa'])); ?> 
-                                    • <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_variabile=<?php echo $variabile['id']; ?>" class="text-red-400 hover:underline">Elimina</a>
-                                </p>
-                            </div>
-                            <span class="text-sm font-bold text-red-500">-<?php echo number_format($variabile['importo'], 2, ',', '.'); ?> €</span>
-                        </li>
-                        <?php endwhile; ?>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-8 bg-gray-50 border border-gray-200 rounded-2xl p-5">
-            <h3 class="text-sm font-bold text-gray-600 mb-4 flex items-center gap-2">🛠️ Pannello Gestione Mese</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Modifica Entrata e Salvadanaio</h4>
-                    <form method="POST" class="flex flex-col sm:flex-row gap-2">
-                        <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
-                        <input type="number" step="0.01" min="0" name="nuova_entrata" value="<?php echo $entrata_totale; ?>" aria-label="Entrata mensile" class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="number" step="0.01" min="0" max="100" name="nuova_percentuale" value="<?php echo $percentuale_risparmio; ?>" aria-label="Percentuale Salvadanaio" class="w-full sm:w-28 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" name="update_budget" class="bg-[#12A0D7] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition">Salva</button>
-                    </form>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Aggiungi / Rimuovi Spese Fisse</h4>
+                <div class="order-5 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-700 mb-3">⚙️ Gestisci Spese Fisse</h3>
                     <form method="POST" class="flex flex-col sm:flex-row sm:flex-wrap gap-2 mb-3">
                         <input type="hidden" name="mese_id" value="<?php echo $mese_id; ?>">
                         <input type="text" name="descrizione_fissa" placeholder="Nuova voce fissa" required class="flex-1 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -1161,8 +1045,8 @@ $preferiti_query = $preferiti_stmt->get_result();
                     </div>
                 </div>
 
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Spese Fisse a scadenza (NON nel budget)</h4>
+                <div class="order-6 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-700 mb-3">🗓️ Piani a scadenza (NON nel budget)</h3>
                     <form method="POST" class="flex gap-2 mb-3">
                         <input type="text" name="descrizione_piano" maxlength="255" placeholder="Nuovo piano (es. Cedolare Secca 2024 F24)" required class="flex-1 min-w-0 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <input type="number" step="1" min="1" max="600" name="numero_rate_piano" placeholder="N. rate" required class="w-20 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -1320,27 +1204,137 @@ $preferiti_query = $preferiti_stmt->get_result();
                         })();
                     </script>
                 </div>
+            </div>
 
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Cambia Password</h4>
-                    <form method="POST" class="flex flex-col sm:flex-row gap-2">
-                        <input
-                            type="password"
-                            name="nuova_password"
-                            placeholder="Nuova password"
-                            required
-                            autocomplete="new-password"
-                            class="w-full px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                        <button
-                            type="submit"
-                            name="update_password"
-                            onclick="return confirm('Vuoi cambiare la password di accesso?')"
-                            class="bg-gray-800 text-white text-xs font-semibold px-4 rounded-xl hover:bg-gray-900 transition"
-                        >
-                            Aggiorna
-                        </button>
-                    </form>
+            <div class="contents md:block md:space-y-6">
+                <div class="order-2 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-700 mb-3">📌 Spese Fisse (già considerate nel budget)</h3>
+                    <ul class="divide-y divide-gray-100">
+                        <?php
+                        $spese_fisse_stmt = $conn->prepare("SELECT sf.* FROM spese_fisse sf INNER JOIN mesi m ON m.id = sf.mese_id WHERE sf.mese_id = ? AND m.utente_id = ?");
+                        $spese_fisse_stmt->bind_param("ii", $mese_id, $utente_id);
+                        $spese_fisse_stmt->execute();
+                        $spese_fisse_query = $spese_fisse_stmt->get_result();
+                        while ($fissa = $spese_fisse_query->fetch_assoc()):
+                        ?>
+                        <li class="py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&toggle_fissa=<?php echo $fissa['id']; ?>" class="w-6 h-6 flex items-center justify-center rounded-md border text-sm <?php echo $fissa['pagato'] ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'; ?>">
+                                    ✓
+                                </a>
+                                <span class="text-sm <?php echo $fissa['pagato'] ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
+                                    <?php if (!empty($fissa['link_documento'])): ?>
+                                        <a href="<?php echo htmlspecialchars($fissa['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo $fissa['descrizione']; ?></a>
+                                    <?php else: ?>
+                                        <?php echo $fissa['descrizione']; ?>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <span class="text-sm font-semibold <?php echo $fissa['pagato'] ? 'text-gray-400' : 'text-gray-600'; ?>">
+                                <?php echo number_format($fissa['importo'], 2, ',', '.'); ?> €
+                            </span>
+                        </li>
+                        <?php endwhile; ?>
+                    </ul>
+
+                    <?php
+                    // Rate a scadenza del mese: scadono in questo mese oppure sono state pagate in questo mese
+                    $rs_inizio_mese = sprintf('%04d-%02d-01', $anno_attivo, $numero_mese_attivo);
+                    $rs_fine_mese = date('Y-m-t', strtotime($rs_inizio_mese));
+                    $rs_stmt = $conn->prepare(
+                        "SELECT r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
+                                v.descrizione,
+                                COALESCE(v.numero_rate, (SELECT COUNT(*) FROM rate_spese_scadenza r2 WHERE r2.voce_id = r.voce_id)) AS totale_rate
+                         FROM rate_spese_scadenza r
+                         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+                         WHERE v.utente_id = ?
+                           AND (
+                                r.data_scadenza BETWEEN ? AND ?
+                                OR (r.pagata = 1 AND r.data_pagamento BETWEEN ? AND ?)
+                           )
+                         ORDER BY r.data_scadenza, v.id, r.numero_rata"
+                    );
+                    $rs_stmt->bind_param("issss", $utente_id, $rs_inizio_mese, $rs_fine_mese, $rs_inizio_mese, $rs_fine_mese);
+                    $rs_stmt->execute();
+                    $rs_query = $rs_stmt->get_result();
+                    $rs_da_pagare = 0.0;
+                    ?>
+                    <h3 class="text-sm font-bold text-gray-700 mt-5 mb-1 pt-4 border-t border-gray-100">📌 Spese Fisse (NON considerate nel budget)</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Vengono scalate dal budget solo quando le spunti come pagate, nel mese del pagamento.</p>
+                    <ul class="divide-y divide-gray-100">
+                        <?php if ($rs_query->num_rows === 0): ?>
+                            <li class="py-2 text-xs text-gray-400">Nessuna scadenza in questo mese.</li>
+                        <?php endif; ?>
+                        <?php while ($rs_rata = $rs_query->fetch_assoc()):
+                            $rs_pagata = intval($rs_rata['pagata']) === 1;
+                            if (!$rs_pagata) {
+                                $rs_da_pagare += floatval($rs_rata['importo']);
+                            }
+                        ?>
+                        <li class="py-2.5 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&toggle_rata_scadenza=<?php echo intval($rs_rata['id']); ?>" onclick="return confirm('<?php echo $rs_pagata ? 'Togliere il PAGATO? Importo di nuovo disponibile nel budget.' : 'Segnare come PAGATA oggi? Importo scalato dal budget di questo mese.'; ?>')" title="Pagato" class="w-6 h-6 shrink-0 flex items-center justify-center rounded-md border text-sm <?php echo $rs_pagata ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'; ?>">
+                                    ✓
+                                </a>
+                                <div class="min-w-0">
+                                    <span class="text-sm <?php echo $rs_pagata ? 'line-through text-gray-400' : 'text-gray-700'; ?>">
+                                        <?php if (!empty($rs_rata['link_documento'])): ?>
+                                            <a href="<?php echo htmlspecialchars($rs_rata['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"><?php echo htmlspecialchars($rs_rata['descrizione']); ?></a>
+                                        <?php else: ?>
+                                            <?php echo htmlspecialchars($rs_rata['descrizione']); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                    <p class="text-[10px] text-gray-400">
+                                        Rata <?php echo intval($rs_rata['numero_rata']); ?>/<?php echo intval($rs_rata['totale_rate']); ?>
+                                        · scadenza <?php echo date('d/m/Y', strtotime($rs_rata['data_scadenza'])); ?>
+                                        <?php if ($rs_pagata && !empty($rs_rata['data_pagamento'])): ?>
+                                            · pagata il <?php echo date('d/m/Y', strtotime($rs_rata['data_pagamento'])); ?>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold shrink-0 <?php echo $rs_pagata ? 'text-gray-400' : 'text-[#FF4500]'; ?>">
+                                <?php echo number_format($rs_rata['importo'], 2, ',', '.'); ?> €
+                            </span>
+                        </li>
+                        <?php endwhile; $rs_stmt->close(); ?>
+                    </ul>
+                    <?php if ($rs_da_pagare > 0): ?>
+                        <p class="text-xs text-right text-gray-500 mt-2">Ancora da pagare: <span class="font-semibold text-[#FF4500]"><?php echo number_format($rs_da_pagare, 2, ',', '.'); ?> €</span></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="order-4 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-700 mb-3">🕒 Ultime Spese Varie</h3>
+                    <input
+                        type="search"
+                        id="ricerca-spese"
+                        placeholder="Cerca una spesa..."
+                        class="w-full mb-3 px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <ul id="elenco-spese" class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+                        <?php
+                        $spese_var_stmt = $conn->prepare("SELECT sv.* FROM spese_variabili sv INNER JOIN mesi m ON m.id = sv.mese_id WHERE sv.mese_id = ? AND m.utente_id = ? ORDER BY sv.id DESC");
+                        $spese_var_stmt->bind_param("ii", $mese_id, $utente_id);
+                        $spese_var_stmt->execute();
+                        $spese_var_query = $spese_var_stmt->get_result();
+                        if ($spese_var_query->num_rows == 0):
+                            echo "<p class='text-xs text-gray-400 py-2'>Nessuna spesa registrata.</p>";
+                        endif;
+                        while ($variabile = $spese_var_query->fetch_assoc()):
+                        ?>
+                        <li class="spesa-variabile py-2 flex justify-between items-center">
+                            <div>
+                                <p class="descrizione-spesa text-sm text-gray-700 font-medium"><?php echo $variabile['descrizione']; ?></p>
+                                <p class="text-[10px] text-gray-400">
+                                    <?php echo date('d/m', strtotime($variabile['data_spesa'])); ?>
+                                    • <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_variabile=<?php echo $variabile['id']; ?>" class="text-red-400 hover:underline">Elimina</a>
+                                </p>
+                            </div>
+                            <span class="text-sm font-bold text-red-500">-<?php echo number_format($variabile['importo'], 2, ',', '.'); ?> €</span>
+                        </li>
+                        <?php endwhile; ?>
+                    </ul>
                 </div>
             </div>
         </div>

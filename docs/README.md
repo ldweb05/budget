@@ -192,10 +192,20 @@ Tutto il codice è in `www/index.php`:
 - il vincolo univoco su (`voce_id`, `numero_rata`) è stato sostituito da un indice normale, perché il numero è scelto dall'utente e le rate possono essere spostate tra piani;
 - funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
 - il totale viene sottratto in tutti e tre i punti di calcolo del budget: dashboard, riporto dell'avanzo dal mese precedente e controllo degli imprevisti all'inserimento di una spesa;
-- visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e riquadro di gestione nel Pannello Gestione Mese.
+- visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e card "🗓️ Piani a scadenza (NON nel budget)" nella dashboard.
 - l'elenco "Gestisci piani e rate" è ordinato con i piani senza rate in alto, poi per prossima scadenza da pagare, infine i piani saldati; dentro ogni piano per data di scadenza;
 - la dashboard mostra "Rata N/Totale" con `COALESCE(numero_rate, numero di rate inserite)`;
 - piani collassabili tramite la funzione JS `apriChiudiPiano()`; lo stato aperto è salvato in `localStorage` (`piani_aperti`) con try/catch, solo come comodità del browser;
 - filtro testuale lato client sul campo `#ricerca-piani` (tutte le parole devono comparire nel nome del piano, attributo `data-nome`).
 
 Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scadenza.utente_id`. I link sono validati con `normalizza_link_documento()`.
+
+---
+
+# Disposizione della dashboard e pagine collegate
+
+- `www/index.php`: contenitore `flex flex-col` su telefono e `md:grid md:grid-cols-2` su computer; le due colonne usano `contents md:block`, così su telefono le card seguono le classi `order-1`…`order-6` e su computer restano in due colonne indipendenti senza spazi vuoti.
+- Il Pannello Gestione Mese è stato eliminato: "Gestisci Spese Fisse" e "Piani a scadenza" sono card autonome.
+- Cambia Password: elemento `<dialog id="dialog-password">` aperto dal pulsante 🔑 del menu; l'azione `update_password` è invariata.
+- Entrata e percentuale: il modulo è in `www/salvadanaio.php` e invia all'azione `update_budget` di `www/index.php` (nessuna logica duplicata) con il campo `torna=salvadanaio`, che fa tornare al Salvadanaio dopo il salvataggio.
+- Il link 🐷 della dashboard passa `mese` e `anno` a `salvadanaio.php`, che li valida (altrimenti usa il mese corrente), mostra la percentuale reale nel titolo e riporta 🏠 Home alla dashboard dello stesso mese.

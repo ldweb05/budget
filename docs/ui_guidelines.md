@@ -66,6 +66,17 @@ L'utente lo visualizza solo entrando volontariamente nella relativa sezione.
 
 ---
 
+# Disposizione della dashboard
+
+- All'apertura devono essere subito visibili "Oggi puoi spendere massimo" e le Spese Fisse del mese con le scadenze.
+- Computer: due colonne indipendenti, senza spazi vuoti. Sinistra: budget, Aggiungi Spesa, Gestisci Spese Fisse, Piani a scadenza. Destra: Spese Fisse (nel budget e NON nel budget), Ultime Spese Varie.
+- Telefono: una colonna nell'ordine budget, Spese Fisse e scadenze, Aggiungi Spesa, Ultime Spese, Gestisci Spese Fisse, Piani a scadenza.
+- Ogni funzione è una card autonoma con lo stesso stile; non esistono pannelli che raggruppano altre card.
+- Le funzioni usate raramente stanno fuori dalla dashboard: Cambia Password in un popup aperto dal pulsante 🔑 del menu, Entrata mensile e percentuale nella pagina Salvadanaio.
+- Il menu va a capo automaticamente sugli schermi stretti.
+
+---
+
 # Coerenza
 
 Ogni nuova schermata dovrà rispettare questi principi.
