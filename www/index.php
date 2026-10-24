@@ -334,52 +334,52 @@ function totale_rate_scadenza_pagate($conn, $utente_id, $anno, $numero_mese) {
     return $totale;
 }
 
-// Azione: Crea una nuova voce a scadenza con le sue rate
-if (isset($_POST['add_voce_scadenza'])) {
-    $desc_scadenza = trim($_POST['descrizione_scadenza'] ?? '');
-    $importo_scadenza = round(floatval($_POST['importo_scadenza'] ?? 0), 2);
-    $date_inserite = $_POST['date_scadenza'] ?? [];
-    $date_valide = [];
-
-    if (is_array($date_inserite)) {
-        foreach ($date_inserite as $data_inserita) {
-            if (trim((string) $data_inserita) === '') {
-                continue;
-            }
-            $data_ok = data_scadenza_valida($data_inserita);
-            if ($data_ok === false) {
-                $date_valide = [];
-                break;
-            }
-            $date_valide[] = $data_ok;
-        }
+// Azione: Crea un nuovo piano di pagamento (nome + numero di rate)
+if (isset($_POST['add_piano_scadenza'])) {
+    $desc_piano = trim($_POST['descrizione_piano'] ?? '');
+    $numero_rate_piano = intval($_POST['numero_rate_piano'] ?? 0);
+    if ($desc_piano !== '' && mb_strlen($desc_piano) <= 255 && $numero_rate_piano > 0 && $numero_rate_piano <= 600) {
+        $stmt = $conn->prepare("INSERT INTO voci_spese_scadenza (utente_id, descrizione, numero_rate) VALUES (?, ?, ?)");
+        $stmt->bind_param("isi", $utente_id, $desc_piano, $numero_rate_piano);
+        $stmt->execute();
+        $stmt->close();
     }
-    sort($date_valide);
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
 
-    if ($desc_scadenza !== '' && mb_strlen($desc_scadenza) <= 255 && $importo_scadenza > 0 && count($date_valide) > 0 && count($date_valide) <= 120) {
-        $conn->begin_transaction();
-        try {
-            $stmt = $conn->prepare("INSERT INTO voci_spese_scadenza (utente_id, descrizione) VALUES (?, ?)");
-            $stmt->bind_param("is", $utente_id, $desc_scadenza);
-            if (!$stmt->execute()) {
-                throw new RuntimeException($stmt->error);
-            }
-            $voce_id = intval($conn->insert_id);
-            $stmt->close();
+// Azione: Aggiunge una rata (numero, scadenza, importo, link facoltativo) sotto un piano
+if (isset($_POST['add_rata_scadenza'])) {
+    $id_piano = intval($_POST['id_piano'] ?? 0);
+    $numero_rata = intval($_POST['numero_rata'] ?? 0);
+    $data_rata = data_scadenza_valida($_POST['data_rata'] ?? '');
+    $importo_rata = round(floatval($_POST['importo_rata'] ?? 0), 2);
+    $link_documento = normalizza_link_documento($_POST['link_rata'] ?? '');
+    if ($link_documento === false) {
+        $link_documento = null;
+    }
+    if ($id_piano > 0 && $numero_rata > 0 && $numero_rata <= 600 && $data_rata !== false && $importo_rata > 0) {
+        $stmt = $conn->prepare(
+            "INSERT INTO rate_spese_scadenza (voce_id, numero_rata, importo, data_scadenza, link_documento)
+             SELECT id, ?, ?, ?, ? FROM voci_spese_scadenza WHERE id = ? AND utente_id = ?"
+        );
+        $stmt->bind_param("idssii", $numero_rata, $importo_rata, $data_rata, $link_documento, $id_piano, $utente_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
 
-            $stmt = $conn->prepare("INSERT INTO rate_spese_scadenza (voce_id, numero_rata, importo, data_scadenza) VALUES (?, ?, ?, ?)");
-            foreach ($date_valide as $indice => $data_rata) {
-                $numero_rata = $indice + 1;
-                $stmt->bind_param("iids", $voce_id, $numero_rata, $importo_scadenza, $data_rata);
-                if (!$stmt->execute()) {
-                    throw new RuntimeException($stmt->error);
-                }
-            }
-            $stmt->close();
-            $conn->commit();
-        } catch (Throwable $eccezione) {
-            $conn->rollback();
-        }
+// Azione: Modifica il numero totale di rate di un piano
+if (isset($_POST['update_piano_scadenza'])) {
+    $id_piano = intval($_POST['id_piano'] ?? 0);
+    $numero_rate_piano = intval($_POST['numero_rate_piano'] ?? 0);
+    if ($numero_rate_piano > 0 && $numero_rate_piano <= 600) {
+        $stmt = $conn->prepare("UPDATE voci_spese_scadenza SET numero_rate = ? WHERE id = ? AND utente_id = ?");
+        $stmt->bind_param("iii", $numero_rate_piano, $id_piano, $utente_id);
+        $stmt->execute();
+        $stmt->close();
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
@@ -422,21 +422,46 @@ if (isset($_POST['update_link_rata_scadenza'])) {
     exit;
 }
 
-// Azione: Modifica importo e data di una rata a scadenza non ancora pagata
+// Azione: Modifica una rata a scadenza
+// - numero della rata e piano di appartenenza: sempre modificabili (anche se pagata)
+// - importo e data di scadenza: solo se la rata non è pagata
 if (isset($_POST['update_rata_scadenza'])) {
     $id_rata = intval($_POST['id_rata']);
-    $importo_rata = round(floatval($_POST['importo_rata'] ?? 0), 2);
-    $data_rata = data_scadenza_valida($_POST['data_rata'] ?? '');
-    if ($importo_rata > 0 && $data_rata !== false) {
+    $numero_rata = intval($_POST['numero_rata'] ?? 0);
+    $id_piano_destinazione = intval($_POST['id_piano'] ?? 0);
+
+    $stmt = $conn->prepare("SELECT COUNT(*) AS n FROM voci_spese_scadenza WHERE id = ? AND utente_id = ?");
+    $stmt->bind_param("ii", $id_piano_destinazione, $utente_id);
+    $stmt->execute();
+    $piano_valido = intval($stmt->get_result()->fetch_assoc()['n'] ?? 0) === 1;
+    $stmt->close();
+
+    if ($piano_valido && $numero_rata > 0 && $numero_rata <= 600) {
         $stmt = $conn->prepare(
             "UPDATE rate_spese_scadenza r
              INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
-             SET r.importo = ?, r.data_scadenza = ?
-             WHERE r.id = ? AND v.utente_id = ? AND r.pagata = 0"
+             SET r.numero_rata = ?, r.voce_id = ?
+             WHERE r.id = ? AND v.utente_id = ?"
         );
-        $stmt->bind_param("dsii", $importo_rata, $data_rata, $id_rata, $utente_id);
+        $stmt->bind_param("iiii", $numero_rata, $id_piano_destinazione, $id_rata, $utente_id);
         $stmt->execute();
         $stmt->close();
+    }
+
+    if (isset($_POST['importo_rata']) || isset($_POST['data_rata'])) {
+        $importo_rata = round(floatval($_POST['importo_rata'] ?? 0), 2);
+        $data_rata = data_scadenza_valida($_POST['data_rata'] ?? '');
+        if ($importo_rata > 0 && $data_rata !== false) {
+            $stmt = $conn->prepare(
+                "UPDATE rate_spese_scadenza r
+                 INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+                 SET r.importo = ?, r.data_scadenza = ?
+                 WHERE r.id = ? AND v.utente_id = ? AND r.pagata = 0"
+            );
+            $stmt->bind_param("dsii", $importo_rata, $data_rata, $id_rata, $utente_id);
+            $stmt->execute();
+            $stmt->close();
+        }
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
@@ -992,7 +1017,7 @@ $preferiti_query = $preferiti_stmt->get_result();
                     $rs_stmt = $conn->prepare(
                         "SELECT r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
                                 v.descrizione,
-                                (SELECT COUNT(*) FROM rate_spese_scadenza r2 WHERE r2.voce_id = r.voce_id) AS totale_rate
+                                COALESCE(v.numero_rate, (SELECT COUNT(*) FROM rate_spese_scadenza r2 WHERE r2.voce_id = r.voce_id)) AS totale_rate
                          FROM rate_spese_scadenza r
                          INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
                          WHERE v.utente_id = ?
@@ -1138,79 +1163,162 @@ $preferiti_query = $preferiti_stmt->get_result();
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Spese Fisse a scadenza (NON nel budget)</h4>
-                    <form method="POST" class="space-y-2 mb-3">
-                        <div class="flex gap-2">
-                            <input type="text" name="descrizione_scadenza" maxlength="255" placeholder="Es. Rata F24" required class="flex-1 min-w-0 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <input type="number" step="0.01" min="0.01" name="importo_scadenza" placeholder="€ rata" required class="w-24 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase">Date di scadenza (una per rata):</p>
-                        <div id="date-scadenza" class="grid grid-cols-2 gap-2">
-                            <input type="date" name="date_scadenza[]" required class="px-2 py-1.5 border rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="const c = document.getElementById('date-scadenza'); const i = c.querySelector('input').cloneNode(); i.value = ''; i.required = false; c.appendChild(i); i.focus();" class="flex-1 border border-gray-300 text-gray-600 text-xs font-semibold py-1.5 rounded-xl hover:bg-gray-50 transition">+ Aggiungi data</button>
-                            <button type="submit" name="add_voce_scadenza" class="flex-1 bg-gray-800 text-white text-xs font-semibold py-1.5 rounded-xl hover:bg-gray-900 transition">Crea voce</button>
-                        </div>
+                    <form method="POST" class="flex gap-2 mb-3">
+                        <input type="text" name="descrizione_piano" maxlength="255" placeholder="Nuovo piano (es. Cedolare Secca 2024 F24)" required class="flex-1 min-w-0 px-3 py-1.5 border rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" step="1" min="1" max="600" name="numero_rate_piano" placeholder="N. rate" required class="w-20 px-2 py-1.5 border rounded-xl text-sm bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" name="add_piano_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-xl hover:bg-gray-900 transition">Crea piano</button>
                     </form>
-                    <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase">Gestisci voci e rate:</p>
-                    <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                        <?php
-                        $rs_elenco_stmt = $conn->prepare(
-                            "SELECT v.id AS voce_id, v.descrizione, r.id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento,
-                                    (SELECT MIN(r3.data_scadenza) FROM rate_spese_scadenza r3 WHERE r3.voce_id = v.id AND r3.pagata = 0) AS prossima_scadenza
-                             FROM voci_spese_scadenza v
-                             INNER JOIN rate_spese_scadenza r ON r.voce_id = v.id
-                             WHERE v.utente_id = ?
-                             ORDER BY (prossima_scadenza IS NULL), prossima_scadenza, v.id, r.data_scadenza, r.numero_rata"
-                        );
-                        $rs_elenco_stmt->bind_param("i", $utente_id);
-                        $rs_elenco_stmt->execute();
-                        $rs_elenco = $rs_elenco_stmt->get_result();
-                        $rs_voce_corrente = 0;
-                        if ($rs_elenco->num_rows === 0):
-                            echo "<p class='text-xs text-gray-400 py-2'>Nessuna voce presente.</p>";
-                        endif;
-                        while ($rs_item = $rs_elenco->fetch_assoc()):
-                            $rs_item_pagata = intval($rs_item['pagata']) === 1;
-                            if ($rs_voce_corrente !== intval($rs_item['voce_id'])):
-                                $rs_voce_corrente = intval($rs_item['voce_id']);
-                        ?>
-                        <div class="pt-2 pb-1 flex justify-between items-center gap-2 text-xs">
-                            <span class="font-bold text-gray-700"><?php echo htmlspecialchars($rs_item['descrizione']); ?></span>
-                            <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_voce_scadenza=<?php echo $rs_voce_corrente; ?>" onclick="return confirm('Vuoi eliminare questa voce e TUTTE le sue rate?')" class="text-red-500 font-bold hover:underline shrink-0">Elimina voce</a>
-                        </div>
+                    <?php
+                    // Piani dell'utente: prima quelli ancora senza rate, poi per prossima scadenza da pagare, in fondo quelli saldati
+                    $rs_piani_stmt = $conn->prepare(
+                        "SELECT v.id, v.descrizione, v.numero_rate,
+                                (SELECT COUNT(*) FROM rate_spese_scadenza r1 WHERE r1.voce_id = v.id) AS rate_inserite,
+                                (SELECT COALESCE(MAX(r2.numero_rata), 0) FROM rate_spese_scadenza r2 WHERE r2.voce_id = v.id) AS ultimo_numero,
+                                (SELECT MIN(r3.data_scadenza) FROM rate_spese_scadenza r3 WHERE r3.voce_id = v.id AND r3.pagata = 0) AS prossima_scadenza
+                         FROM voci_spese_scadenza v
+                         WHERE v.utente_id = ?
+                         ORDER BY (rate_inserite = 0) DESC, (prossima_scadenza IS NULL), prossima_scadenza, v.id"
+                    );
+                    $rs_piani_stmt->bind_param("i", $utente_id);
+                    $rs_piani_stmt->execute();
+                    $rs_piani = $rs_piani_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $rs_piani_stmt->close();
+
+                    $rs_rate_stmt = $conn->prepare(
+                        "SELECT r.id, r.voce_id, r.numero_rata, r.importo, r.data_scadenza, r.pagata, r.data_pagamento, r.link_documento
+                         FROM rate_spese_scadenza r
+                         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+                         WHERE v.utente_id = ?
+                         ORDER BY r.data_scadenza, r.numero_rata"
+                    );
+                    $rs_rate_stmt->bind_param("i", $utente_id);
+                    $rs_rate_stmt->execute();
+                    $rs_rate_per_piano = [];
+                    foreach ($rs_rate_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $rs_r) {
+                        $rs_rate_per_piano[intval($rs_r['voce_id'])][] = $rs_r;
+                    }
+                    $rs_rate_stmt->close();
+                    ?>
+                    <div class="flex justify-between items-center mb-1 gap-2">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase">Gestisci piani e rate:</p>
+                    </div>
+                    <input
+                        type="search"
+                        id="ricerca-piani"
+                        placeholder="Cerca (es. F24, Cedolare, 2024, Nepta)..."
+                        oninput="const parole = this.value.toLowerCase().trim().split(/\s+/).filter(Boolean); document.querySelectorAll('.gruppo-piano').forEach(function (g) { g.classList.toggle('hidden', !parole.every(function (p) { return g.dataset.nome.includes(p); })); });"
+                        class="w-full mb-2 px-3 py-1.5 border rounded-xl bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                        <?php if (count($rs_piani) === 0): ?>
+                            <p class="text-xs text-gray-400 py-2">Nessun piano presente.</p>
                         <?php endif; ?>
-                        <div class="riga-rata-scadenza py-1.5 pl-2 text-xs">
+                        <?php foreach ($rs_piani as $rs_piano):
+                            $rs_piano_id = intval($rs_piano['id']);
+                            $rs_totale = $rs_piano['numero_rate'] !== null ? intval($rs_piano['numero_rate']) : 0;
+                            $rs_rate = $rs_rate_per_piano[$rs_piano_id] ?? [];
+                        ?>
+                        <div class="gruppo-piano py-2 text-xs" data-id="<?php echo $rs_piano_id; ?>" data-nome="<?php echo htmlspecialchars(mb_strtolower($rs_piano['descrizione']), ENT_QUOTES); ?>">
                             <div class="flex justify-between items-center gap-2">
-                                <span class="<?php echo $rs_item_pagata ? 'text-gray-400' : 'text-gray-600'; ?>">
-                                    Rata <?php echo intval($rs_item['numero_rata']); ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€
-                                    <?php if ($rs_item_pagata && !empty($rs_item['data_pagamento'])): ?>
-                                        · pagata il <?php echo date('d/m/Y', strtotime($rs_item['data_pagamento'])); ?>
-                                    <?php endif; ?>
+                                <span class="min-w-0">
+                                    <button type="button" onclick="apriChiudiPiano(this.closest('.gruppo-piano'))" class="text-left font-bold text-gray-700 hover:text-[#008080]"><span class="freccia-piano inline-block w-3 text-gray-400">▸</span> <?php echo htmlspecialchars($rs_piano['descrizione']); ?></button>
+                                    <span class="text-[10px] text-gray-400">
+                                        · <?php echo intval($rs_piano['rate_inserite']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> rate inserite
+                                    </span>
                                 </span>
                                 <span class="flex items-center gap-3 shrink-0">
-                                    <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-link-rata').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline"><?php echo !empty($rs_item['link_documento']) ? 'Modifica link' : 'Link'; ?></button>
-                                    <?php if (!$rs_item_pagata): ?>
-                                        <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-modifica-rata').classList.toggle('hidden')" class="text-gray-600 font-bold hover:underline">Modifica</button>
-                                    <?php endif; ?>
+                                    <button type="button" onclick="const g = this.closest('.gruppo-piano'); apriChiudiPiano(g, true); g.querySelector('.form-aggiungi-rata').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline">+ Rata</button>
+                                    <button type="button" onclick="const g = this.closest('.gruppo-piano'); apriChiudiPiano(g, true); g.querySelector('.form-totale-piano').classList.toggle('hidden')" class="text-gray-600 font-bold hover:underline">N. rate</button>
+                                    <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_voce_scadenza=<?php echo $rs_piano_id; ?>" onclick="return confirm('Vuoi eliminare questo piano e TUTTE le sue rate?')" class="text-red-500 font-bold hover:underline">Elimina</a>
                                 </span>
                             </div>
-                            <form method="POST" class="form-link-rata hidden mt-1.5 flex gap-2">
-                                <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
-                                <input type="url" name="link_rata" maxlength="1000" value="<?php echo htmlspecialchars($rs_item['link_documento'] ?? '', ENT_QUOTES); ?>" placeholder="Incolla il link (vuoto = rimuovi)" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <button type="submit" name="update_link_rata_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                            <div class="contenuto-piano hidden">
+                            <form method="POST" class="form-aggiungi-rata hidden mt-1.5 grid grid-cols-2 gap-2">
+                                <input type="hidden" name="id_piano" value="<?php echo $rs_piano_id; ?>">
+                                <label class="flex items-center gap-1 text-[10px] text-gray-500">N. rata
+                                    <input type="number" step="1" min="1" max="600" name="numero_rata" required value="<?php echo intval($rs_piano['ultimo_numero']) + 1; ?>" class="w-full min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </label>
+                                <input type="number" step="0.01" min="0.01" name="importo_rata" placeholder="€ importo" required class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="date" name="data_rata" required class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="url" name="link_rata" maxlength="1000" placeholder="Link (facoltativo)" class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" name="add_rata_scadenza" class="col-span-2 bg-gray-800 text-white text-xs font-semibold py-1.5 rounded-lg hover:bg-gray-900 transition">Aggiungi rata</button>
                             </form>
-                            <?php if (!$rs_item_pagata): ?>
-                            <form method="POST" class="form-modifica-rata hidden mt-1.5 flex gap-2">
-                                <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
-                                <input type="date" name="data_rata" required value="<?php echo htmlspecialchars($rs_item['data_scadenza'], ENT_QUOTES); ?>" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <input type="number" step="0.01" min="0.01" name="importo_rata" required value="<?php echo htmlspecialchars($rs_item['importo'], ENT_QUOTES); ?>" class="w-20 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <button type="submit" name="update_rata_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                            <form method="POST" class="form-totale-piano hidden mt-1.5 flex gap-2">
+                                <input type="hidden" name="id_piano" value="<?php echo $rs_piano_id; ?>">
+                                <input type="number" step="1" min="1" max="600" name="numero_rate_piano" required value="<?php echo $rs_totale > 0 ? $rs_totale : ''; ?>" placeholder="Totale rate del piano" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" name="update_piano_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
                             </form>
+                            <?php if (count($rs_rate) === 0): ?>
+                                <p class="pl-2 pt-1 text-[10px] text-gray-400">Nessuna rata inserita: usa "+ Rata".</p>
                             <?php endif; ?>
+                            <?php foreach ($rs_rate as $rs_item):
+                                $rs_item_pagata = intval($rs_item['pagata']) === 1;
+                            ?>
+                            <div class="riga-rata-scadenza py-1.5 pl-2">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="<?php echo $rs_item_pagata ? 'text-gray-400' : 'text-gray-600'; ?>">
+                                        Rata <?php echo intval($rs_item['numero_rata']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€
+                                        <?php if ($rs_item_pagata && !empty($rs_item['data_pagamento'])): ?>
+                                            · pagata il <?php echo date('d/m/Y', strtotime($rs_item['data_pagamento'])); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                    <span class="flex items-center gap-3 shrink-0">
+                                        <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-link-rata').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline"><?php echo !empty($rs_item['link_documento']) ? 'Modifica link' : 'Link'; ?></button>
+                                        <button type="button" onclick="this.closest('.riga-rata-scadenza').querySelector('.form-modifica-rata').classList.toggle('hidden')" class="text-gray-600 font-bold hover:underline">Modifica</button>
+                                    </span>
+                                </div>
+                                <form method="POST" class="form-link-rata hidden mt-1.5 flex gap-2">
+                                    <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
+                                    <input type="url" name="link_rata" maxlength="1000" value="<?php echo htmlspecialchars($rs_item['link_documento'] ?? '', ENT_QUOTES); ?>" placeholder="Incolla il link (vuoto = rimuovi)" class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button type="submit" name="update_link_rata_scadenza" class="bg-gray-800 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                                </form>
+                                <form method="POST" class="form-modifica-rata hidden mt-1.5 grid grid-cols-2 gap-2">
+                                    <input type="hidden" name="id_rata" value="<?php echo intval($rs_item['id']); ?>">
+                                    <label class="flex items-center gap-1 text-[10px] text-gray-500">N. rata
+                                        <input type="number" step="1" min="1" max="600" name="numero_rata" required value="<?php echo intval($rs_item['numero_rata']); ?>" class="w-full min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </label>
+                                    <select name="id_piano" aria-label="Piano" class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <?php foreach ($rs_piani as $rs_opzione): ?>
+                                            <option value="<?php echo intval($rs_opzione['id']); ?>" <?php echo intval($rs_opzione['id']) === $rs_piano_id ? 'selected' : ''; ?>><?php echo htmlspecialchars($rs_opzione['descrizione']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if (!$rs_item_pagata): ?>
+                                        <input type="date" name="data_rata" required value="<?php echo htmlspecialchars($rs_item['data_scadenza'], ENT_QUOTES); ?>" class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <input type="number" step="0.01" min="0.01" name="importo_rata" required value="<?php echo htmlspecialchars($rs_item['importo'], ENT_QUOTES); ?>" class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-gray-50 font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <?php else: ?>
+                                        <p class="col-span-2 text-[10px] text-gray-400">Rata pagata: data e importo non modificabili.</p>
+                                    <?php endif; ?>
+                                    <button type="submit" name="update_rata_scadenza" class="col-span-2 bg-gray-800 text-white text-xs font-semibold py-1.5 rounded-lg hover:bg-gray-900 transition">Salva</button>
+                                </form>
+                            </div>
+                            <?php endforeach; ?>
+                            </div>
                         </div>
-                        <?php endwhile; $rs_elenco_stmt->close(); ?>
+                        <?php endforeach; ?>
                     </div>
+                    <script>
+                        // Piani collassabili: lo stato aperto/chiuso viene ricordato nel browser
+                        function apriChiudiPiano(g, apri) {
+                            const c = g.querySelector('.contenuto-piano');
+                            const aperto = apri === true ? true : c.classList.contains('hidden');
+                            c.classList.toggle('hidden', !aperto);
+                            g.querySelector('.freccia-piano').textContent = aperto ? '▾' : '▸';
+                            try {
+                                let s = JSON.parse(localStorage.getItem('piani_aperti') || '[]');
+                                s = s.filter(function (id) { return id !== g.dataset.id; });
+                                if (aperto) { s.push(g.dataset.id); }
+                                localStorage.setItem('piani_aperti', JSON.stringify(s));
+                            } catch (e) {}
+                        }
+                        (function () {
+                            try {
+                                const s = JSON.parse(localStorage.getItem('piani_aperti') || '[]');
+                                document.querySelectorAll('.gruppo-piano').forEach(function (g) {
+                                    if (s.includes(g.dataset.id)) { apriChiudiPiano(g, true); }
+                                });
+                            } catch (e) {}
+                        })();
+                    </script>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">

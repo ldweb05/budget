@@ -274,3 +274,35 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Corretto l'ordinamento dell'elenco "Gestisci voci e rate" nel Pannello Gestione Mese, prima alfabetico per descrizione: ora le voci sono ordinate per prossima scadenza da pagare, quelle con tutte le rate pagate vanno in fondo e le rate di ogni voce sono in ordine di data.
 - File toccato: `www/index.php` (solo la query dell'elenco; calcoli del budget e card della dashboard invariati).
 - Punto di ripristino: tag `checkpoint-pre-ordine-scadenze` e backup del 2026-10-23 17:32 in `~/backups/budget/`.
+
+---
+
+# 2026-10-24 — Piani di pagamento per le Spese fisse a scadenza
+
+## Cosa è stato fatto
+
+- Le Spese fisse a scadenza sono ora organizzate in piani di pagamento: si crea il piano (nome + numero totale di rate) e poi si aggiungono le rate una alla volta sotto il piano (numero, data di scadenza, importo, link facoltativo).
+- Il numero della rata è quello reale ("Rata 3/5"), proposto come successivo all'ultimo ma modificabile; anche le rate esistenti possono essere rinumerate e spostate in un altro piano.
+- Nel Pannello Gestione Mese i piani sono collassabili (chiusi di default, stato aperto ricordato dal browser) e filtrabili con un campo "Cerca".
+- La dashboard mostra "Rata N/Totale" usando il totale del piano.
+
+## File toccati
+
+- `migrations/010_piani_spese_scadenza.sql` (nuovo): colonna `voci_spese_scadenza.numero_rate`; indice univoco (`voce_id`, `numero_rata`) sostituito da indice normale.
+- `www/index.php`: azioni `add_piano_scadenza`, `add_rata_scadenza`, `update_piano_scadenza`, `update_rata_scadenza` estesa (rimossa la vecchia `add_voce_scadenza`), riquadro "Gestisci piani e rate", funzione `apriChiudiPiano()`, "Rata N/Totale" in dashboard.
+
+## Decisioni tecniche
+
+- Nessuna nuova tabella: le "voci" diventano piani aggiungendo il totale delle rate, così calcolo del budget, PAGATO e link restano invariati.
+- Indice univoco rimosso: con numero scelto dall'utente e spostamento tra piani avrebbe fatto fallire gli aggiornamenti senza avvisi; un eventuale doppione resta visibile e correggibile.
+- Stato aperto/chiuso dei piani in `localStorage` con try/catch: è solo una comodità del singolo browser, la pagina funziona anche senza.
+
+## Problemi incontrati
+
+- Inizialmente ogni rata era stata creata come voce separata (sempre "Rata 1"): la nuova struttura a piani risolve il problema.
+- Su richiesta dell'utente tutte le voci di prova (9 voci, nessuna rata pagata) sono state eliminate dal database per ricrearle con la nuova struttura; il primo piano ricreato ("Rottamazione 2023", 5 rate con link) è stato verificato.
+- Script lunghi incollati nel terminale si troncavano: i trasferimenti in base64 vengono ora divisi in pezzi da circa 1000 caratteri, con controllo `md5sum` del file ricomposto.
+
+## Punto di ripristino
+
+- Tag `checkpoint-pre-piani-scadenza` e backup del 2026-10-24 08:20 in `~/backups/budget/`.

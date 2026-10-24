@@ -38,6 +38,7 @@ Componenti principali verificati:
 - `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
 - `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;
 - `migrations/009_create_spese_scadenza.sql`: tabelle `voci_spese_scadenza` e `rate_spese_scadenza` delle Spese fisse a scadenza;
+- `migrations/010_piani_spese_scadenza.sql`: colonna `numero_rate` dei piani e indice non univoco su (`voce_id`, `numero_rata`);
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
 
@@ -182,15 +183,19 @@ Prima di qualsiasi commit o rilascio verificare sempre `prossimo_passo.md`.
 
 La funzione utilizza due tabelle dedicate, create dalla migrazione `009_create_spese_scadenza.sql`:
 
-- `voci_spese_scadenza` (`utente_id`, `descrizione`), associata direttamente all'utente con `ON DELETE CASCADE`;
+- `voci_spese_scadenza` (`utente_id`, `descrizione`, `numero_rate`), i piani di pagamento, associata direttamente all'utente con `ON DELETE CASCADE`; `numero_rate` (totale delle rate) è stato aggiunto dalla migrazione `010_piani_spese_scadenza.sql`;
 - `rate_spese_scadenza` (`voce_id`, `numero_rata`, `importo`, `data_scadenza`, `pagata`, `data_pagamento`, `link_documento`), associata alla voce con `ON DELETE CASCADE`.
 
 Tutto il codice è in `www/index.php`:
 
-- azioni: `add_voce_scadenza` (le date vengono validate, ordinate e numerate), `toggle_rata_scadenza` (PAGATO con data di pagamento = oggi, o rimozione), `update_link_rata_scadenza`, `update_rata_scadenza` (solo rate non pagate), `delete_voce_scadenza`;
+- azioni: `add_piano_scadenza` (nome + numero di rate), `add_rata_scadenza` (numero, data, importo, link facoltativo, sotto un piano dell'utente), `update_piano_scadenza` (totale rate), `toggle_rata_scadenza` (PAGATO con data di pagamento = oggi, o rimozione), `update_link_rata_scadenza`, `update_rata_scadenza` (numero e piano sempre; importo e data solo se non pagata; il piano di destinazione deve appartenere all'utente), `delete_voce_scadenza`;
+- il vincolo univoco su (`voce_id`, `numero_rata`) è stato sostituito da un indice normale, perché il numero è scelto dall'utente e le rate possono essere spostate tra piani;
 - funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
 - il totale viene sottratto in tutti e tre i punti di calcolo del budget: dashboard, riporto dell'avanzo dal mese precedente e controllo degli imprevisti all'inserimento di una spesa;
 - visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e riquadro di gestione nel Pannello Gestione Mese.
-- l'elenco "Gestisci voci e rate" è ordinato per prossima scadenza da pagare (voci con tutte le rate pagate in fondo) e, dentro ogni voce, per data di scadenza.
+- l'elenco "Gestisci piani e rate" è ordinato con i piani senza rate in alto, poi per prossima scadenza da pagare, infine i piani saldati; dentro ogni piano per data di scadenza;
+- la dashboard mostra "Rata N/Totale" con `COALESCE(numero_rate, numero di rate inserite)`;
+- piani collassabili tramite la funzione JS `apriChiudiPiano()`; lo stato aperto è salvato in `localStorage` (`piani_aperti`) con try/catch, solo come comodità del browser;
+- filtro testuale lato client sul campo `#ricerca-piani` (tutte le parole devono comparire nel nome del piano, attributo `data-nome`).
 
 Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scadenza.utente_id`. I link sono validati con `normalizza_link_documento()`.

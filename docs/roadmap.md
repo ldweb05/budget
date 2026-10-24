@@ -180,3 +180,6 @@ Le rate sono considerate importi già impegnati e non vengono duplicate tra le s
 - ✅ Link documento per singola rata, anche dopo il pagamento.
 - ✅ Modifica di importo e data delle rate non pagate, eliminazione della voce.
 - ✅ Isolamento per utente; Spese programmate invariate.
+- ✅ Piani di pagamento con numero totale di rate e rate aggiunte una alla volta (2026-10-24).
+- ✅ Numero della rata reale ("Rata N/Totale"), modificabile, e spostamento delle rate tra piani.
+- ✅ Piani collassabili e filtro di ricerca testuale nel Pannello Gestione Mese.

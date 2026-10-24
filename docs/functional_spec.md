@@ -68,11 +68,13 @@ Le Spese fisse a scadenza sono impegni importanti con date di scadenza reali non
 
 Sono distinte dalle Spese programmate (acquisti rateali poco rilevanti, consultabili dal pulsante "Programmate") e restano sempre in vista nella dashboard, nella card Spese Fisse, sotto la sezione "Spese Fisse (NON considerate nel budget)".
 
-Ogni voce appartiene all'utente autenticato e contiene:
+Sono organizzate in piani di pagamento (es. "Rottamazione 2023", "F24 Cedolare secca 2024"). Ogni piano appartiene all'utente autenticato e contiene:
 
-- descrizione;
-- importo della rata;
-- una data di scadenza reale per ogni rata, inserita manualmente (nessun calcolo automatico delle date).
+- nome del piano;
+- numero totale di rate previste;
+- le rate, aggiunte una alla volta sotto il piano, ciascuna con numero della rata, data di scadenza reale, importo e link facoltativo (nessun calcolo automatico delle date).
+
+Il numero della rata viene proposto come successivo all'ultimo inserito ma è modificabile (un piano già avviato può partire, per esempio, dalla rata 15). Le rate sono mostrate come "Rata N/Totale".
 
 Regole:
 
@@ -80,9 +82,11 @@ Regole:
 - la rata viene scalata dal budget solo quando l'utente spunta PAGATO, nel mese del pagamento (data di pagamento = giorno in cui viene spuntata);
 - se viene pagata in un mese diverso dalla scadenza, compare anche nel mese del pagamento, come pagata;
 - togliendo la spunta l'importo torna disponibile;
-- importo e data sono modificabili solo sulle rate non pagate;
+- importo e data sono modificabili solo sulle rate non pagate; numero della rata e piano di appartenenza sono sempre modificabili (una rata può essere spostata in un altro piano);
+- il numero totale di rate del piano è modificabile;
 - ogni rata può essere collegata a un documento esterno (Paperless-ngx o Google Drive) tramite link, anche dopo il pagamento, con la stessa resa delle spese fisse (descrizione cliccabile in orangered);
-- l'eliminazione di una voce elimina tutte le sue rate;
+- l'eliminazione di un piano elimina tutte le sue rate;
+- nel Pannello Gestione Mese i piani sono collassabili (chiusi di default, il browser ricorda quelli aperti), ordinati per prossima scadenza da pagare (piani senza rate in alto, saldati in fondo) e filtrabili con un campo di ricerca testuale (es. "F24", "Cedolare 2024");
 - non modificano il Salvadanaio e rispettano l'isolamento dei dati per utente.
 
 ---
