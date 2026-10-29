@@ -133,8 +133,6 @@ if (isset($_POST['crea_mese'])) {
             $budget_finale_prec =
                 ($entrata_prec - $quota_risparmio_prec)
                 - $tot_fisse_prec
-                - $tot_programmate_prec
-                - $tot_scadenza_prec
                 + $avanzo_riportato_prec
                 - $tot_var_prec;
 
@@ -525,6 +523,7 @@ if (isset($_POST['add_variabile'])) {
             "SELECT
                 m.entrata,
                 m.percentuale_risparmio,
+                m.avanzo_riportato,
                 COALESCE((SELECT SUM(sf.importo) FROM spese_fisse sf WHERE sf.mese_id = m.id), 0) AS totale_fisse,
                 COALESCE((SELECT SUM(sv.importo) FROM spese_variabili sv WHERE sv.mese_id = m.id), 0) AS totale_variabili,
                 COALESCE((
@@ -583,8 +582,7 @@ if (isset($_POST['add_variabile'])) {
                 $entrata
                 - $quota_risparmio
                 - $totale_fisse
-                - $totale_programmate
-                - $totale_scadenza
+                + floatval($dati_budget['avanzo_riportato'] ?? 0)
                 - $totale_variabili;
 
             $ins_var = $conn->prepare(
@@ -942,9 +940,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $avanzo_riportato = floatval($mese_dati['avanzo_riportato'] ?? 0);
         $budget_variabile_iniziale =
             $entrata_dopo_risparmio
-            - $tot_fisse
-            - $tot_programmate
-            - $tot_scadenza_pagate;
+            - $tot_fisse;
         $budget_restante_mese = $budget_variabile_iniziale + $avanzo_riportato - $tot_var;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
@@ -996,60 +992,15 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
 
             $res_spese_giornaliere_stmt->close();
 
-            $budget_da_distribuire = $budget_variabile_iniziale;
-            // Il giorno 1 del mese eredita l'avanzo del mese precedente esattamente
-            // come un normale avanzo giornaliero (comportamento identico al riporto
-            // da un giorno all'altro), non viene invece sommato al monte che si
-            // divide per tutti i giorni del mese.
-            $avanzo_giorno_precedente = $avanzo_riportato;
-
-            for (
-                $giorno = 1;
-                $giorno < $giorno_corrente;
-                $giorno++
-            ) {
-                $data_giorno = sprintf(
-                    '%04d-%02d-%02d',
-                    $anno_attivo,
-                    $numero_mese_attivo,
-                    $giorno
-                );
-                $giorni_disponibili =
-                    ($giorni_totali_mese - $giorno) + 1;
-                $quota_base_giorno =
-                    $budget_da_distribuire / $giorni_disponibili;
-                $spesa_giorno = floatval(
-                    $spese_per_giorno[$data_giorno] ?? 0
-                );
-
-                $disponibilita_giorno =
-                    $quota_base_giorno
-                    + $avanzo_giorno_precedente;
-
-                if ($spesa_giorno <= $disponibilita_giorno) {
-                    $avanzo_giorno_precedente =
-                        $disponibilita_giorno - $spesa_giorno;
-                    $budget_da_distribuire -= $quota_base_giorno;
-                } else {
-                    $sforamento_giorno =
-                        $spesa_giorno - $disponibilita_giorno;
-                    $budget_da_distribuire -=
-                        $quota_base_giorno + $sforamento_giorno;
-                    $avanzo_giorno_precedente = 0.0;
-                }
-            }
-
-            $quota_base_oggi =
-                $budget_da_distribuire / $giorni_rimasti;
-            $quota_inizio_oggi =
-                $quota_base_oggi + $avanzo_giorno_precedente;
-            $tot_var_oggi = floatval(
-                $spese_per_giorno[$data_oggi] ?? 0
-            );
-
-            $budget_giornaliero = $budget_restante_mese < 0
-                ? $budget_restante_mese
-                : $quota_inizio_oggi - $tot_var_oggi;
+            // Conto giornaliero puro: ogni giorno matura la stessa quota
+            // (budget variabile del mese / giorni del mese). Avanzi e sforamenti
+            // passano interi al giorno successivo, anche se negativi.
+            $quota_giornaliera = $budget_variabile_iniziale / $giorni_totali_mese;
+            $spese_fino_a_oggi = array_sum($spese_per_giorno);
+            $budget_giornaliero =
+                $quota_giornaliera * $giorno_corrente
+                + $avanzo_riportato
+                - $spese_fino_a_oggi;
         } else {
             $giorni_rimasti = 1;
             $budget_giornaliero = $budget_restante_mese;

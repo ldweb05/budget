@@ -52,7 +52,7 @@ Le spese fisse sono considerate impegnate dal primo giorno del mese.
 
 Devono essere sempre incluse nel calcolo del budget disponibile.
 
-Fanno eccezione le Spese fisse a scadenza (es. rate F24 con date reali non mensili): sono visibili nel mese della scadenza ma vengono scalate dal budget solo quando sono segnate come pagate, nel mese del pagamento.
+Le Spese fisse a scadenza (es. rate F24) e le Spese programmate sono solo promemoria: sono visibili ma non vengono mai scalate dal budget.
 
 ---
 
@@ -62,9 +62,11 @@ Fanno eccezione le Spese fisse a scadenza (es. rate F24 con date reali non mensi
 
 Ogni nuova spesa aggiorna automaticamente il budget giornaliero.
 
-Se si spende meno del previsto, il residuo viene redistribuito sui giorni rimanenti.
+Ogni giorno matura la stessa quota giornaliera.
 
-Se si spende di più, anche l'eccedenza viene redistribuita automaticamente.
+Se si spende meno del previsto, il residuo passa intero al giorno successivo.
+
+Se si spende di più, il giorno successivo parte in negativo e si recupera con le quote dei giorni seguenti.
 
 ---
 

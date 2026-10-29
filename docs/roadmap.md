@@ -122,7 +122,7 @@ Sono disponibili:
 - scadenze manuali con date non regolari;
 - visualizzazione delle rate del mese corrente;
 - visualizzazione delle rate future;
-- integrazione delle rate nel budget del mese di competenza;
+- rate solo come promemoria, escluse dal budget (2026-10-29);
 - prevenzione dei duplicati tramite vincolo univoco sul numero della rata nel piano;
 - pagamento della singola rata;
 - modifica di data e importo delle rate non pagate;
@@ -137,7 +137,7 @@ Sono disponibili:
 - rata pagata anticipatamente: mese del pagamento;
 - rata pagata in ritardo: mese della scadenza originaria.
 
-Le rate sono considerate importi già impegnati e non vengono duplicate tra le spese variabili.
+Le rate sono solo promemoria e non riducono il budget.
 
 ## Vincoli rispettati
 

@@ -15,12 +15,12 @@ Completato:
 - versamenti manuali aggiuntivi indipendenti dalla percentuale;
 - prelievi manuali dal Salvadanaio;
 - isolamento dei dati per utente;
-- budget giornaliero con redistribuzione degli sforamenti sui giorni rimanenti;
+- budget giornaliero come conto giornaliero puro: quota fissa al giorno, avanzi e sforamenti passati interi al giorno successivo (2026-10-29);
 - trasferimento integrale degli avanzi al giorno immediatamente successivo;
 - Spese programmate con piani e singole scadenze;
 - generazione automatica delle rate con frequenza in mesi;
 - inserimento manuale di scadenze non regolari;
-- integrazione delle rate nel budget del mese di competenza;
+- Spese programmate e Spese fisse a scadenza solo come promemoria, escluse da ogni calcolo (2026-10-29);
 - pagamento della singola rata;
 - modifica di data e importo delle rate non pagate;
 - estinzione anticipata delle ultime rate residue;
@@ -39,11 +39,11 @@ Completato:
 ### Validazione completa dall'interfaccia
 
 1. Verificare al cambio giorno che l'avanzo venga trasferito integralmente al solo giorno successivo.
-2. Verificare che uno sforamento continui a essere redistribuito sui giorni rimanenti.
+2. Verificare che uno sforamento passi intero al giorno successivo e si recuperi con le quote seguenti.
 3. Creare un piano automatico mensile.
 4. Creare un piano manuale con scadenze irregolari.
 5. Verificare la visualizzazione delle rate del mese corrente.
-6. Verificare l'impatto delle rate sul budget giornaliero.
+6. Verificare che le rate non modifichino il budget giornaliero.
 7. Segnare una rata come pagata.
 8. Modificare una rata non pagata.
 9. Estinguere anticipatamente le ultime rate residue.

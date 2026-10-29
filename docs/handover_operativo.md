@@ -49,9 +49,8 @@ Ogni risposta deve sempre riportare:
 - il risparmio viene calcolato sull'entrata totale;
 - le spese fisse sono sempre considerate impegnate;
 - le spese variabili riducono il budget disponibile;
-- le rate programmate del mese sono considerate importi già impegnati;
-- le rate programmate non vengono duplicate tra le spese variabili;
-- gli sforamenti giornalieri vengono redistribuiti sui giorni rimanenti del mese;
+- Spese programmate e Spese fisse a scadenza sono solo promemoria e non toccano alcun calcolo;
+- gli sforamenti giornalieri passano interi al giorno successivo (conto giornaliero puro);
 - gli avanzi giornalieri vengono trasferiti integralmente al giorno immediatamente successivo;
 - una modifica per volta;
 - nessun refactoring o intervento non richiesto.
@@ -372,3 +371,29 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Errore simulato con un host inesistente: registrato `errore`, fase 7, "No route to host"; backup reale successivo registrato `ok`.
 - Avviso rosso mostrato con una riga di prova inserita e poi rimossa.
 - Punto di ripristino: tag `checkpoint-pre-avviso-backup`, backup del 2026-10-24 09:53 e copia dello script `~/backups/budget-backup.sh.bak-20261024-095306`.
+
+# 2026-10-29 — Conto giornaliero puro e rate solo promemoria
+
+## Problema
+
+- "Oggi puoi spendere" restava fermo a -28 € da giorni: quando il saldo del mese era negativo la dashboard mostrava il saldo mensile invece del conto del giorno.
+- Il saldo era negativo per errore: Spese programmate e Spese fisse a scadenza pagate venivano scalate dal budget, mentre per l'utente sono solo promemoria.
+- Il prelievo automatico "Imprevisti" ignorava l'avanzo del mese precedente e ha registrato a ottobre 114,77 € non dovuti.
+
+## Cosa è stato fatto (`www/index.php`)
+
+- Budget giornaliero = quota giornaliera × giorno del mese + avanzo del mese precedente − spese varie fino a oggi; quota = (entrata − Salvadanaio − spese fisse) ÷ giorni del mese. Rimossa la redistribuzione degli sforamenti.
+- Rate programmate e rate a scadenza pagate tolte dai tre calcoli: dashboard, riporto dell'avanzo al mese successivo, prelievo Imprevisti.
+- Il prelievo Imprevisti ora considera anche l'avanzo del mese precedente (stesso saldo di "Disponibilità rimasta").
+- Dati: cancellato il prelievo "Imprevisti - Ottobre 2026" (id 10, 114,77 €). Ottobre dopo la correzione: quota 12 €/giorno, saldo del mese +115,37 €, oggi +91,37 €.
+
+## Decisioni
+
+- Le spese fisse normali (es. Condominio, Telefono, Gas) restano nel calcolo.
+- Avanzi positivi di fine mese riportati al primo giorno del mese successivo; sforamenti coperti dal Salvadanaio (comportamento già esistente).
+- `avanzo_riportato` dei mesi passati non ricalcolato.
+
+## Verifiche
+
+- Test nel sandbox, `php -l` nel container, test nel browser dell'utente (cifre attese, spesa di prova da 1 € senza prelievo Imprevisti).
+- Punto di ripristino: tag `checkpoint-pre-conto-giornaliero`, dump del 2026-10-29 10:11 in `~/backups/budget/`.

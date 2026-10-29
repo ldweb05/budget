@@ -80,7 +80,7 @@ Il numero della rata viene proposto come successivo all'ultimo inserito ma è mo
 Regole:
 
 - una rata non pagata è visibile solo nel mese della propria scadenza e non viene scalata dal budget;
-- la rata viene scalata dal budget solo quando l'utente spunta PAGATO, nel mese del pagamento (data di pagamento = giorno in cui viene spuntata);
+- le rate sono solo promemoria e non vengono mai scalate dal budget, nemmeno quando l'utente spunta PAGATO (data di pagamento = giorno in cui viene spuntata);
 - se viene pagata in un mese diverso dalla scadenza, compare anche nel mese del pagamento, come pagata;
 - togliendo la spunta l'importo torna disponibile;
 - importo e data sono modificabili solo sulle rate non pagate; numero della rata e piano di appartenenza sono sempre modificabili (una rata può essere spostata in un altro piano);
@@ -122,7 +122,7 @@ Ogni rata è registrata come singola scadenza con:
 - stato pagato;
 - eventuale data di pagamento.
 
-Le rate del mese vengono considerate importi già impegnati e riducono il budget disponibile prima del calcolo del budget giornaliero.
+Le rate sono solo promemoria: non riducono il budget disponibile né il budget giornaliero (2026-10-29).
 
 La data di competenza viene determinata così:
 
@@ -166,16 +166,17 @@ Se una giornata termina con un avanzo:
 - l'avanzo non viene suddiviso tra tutti i giorni rimanenti;
 - se il residuo non viene utilizzato nel giorno successivo, continua a trasferirsi integralmente al giorno seguente.
 
-Se una giornata termina con uno sforamento ma il budget mensile complessivo resta positivo:
+Se una giornata termina con uno sforamento:
 
-- lo sforamento viene redistribuito automaticamente sui giorni rimanenti;
-- la quota base dei giorni successivi viene ridotta in modo uniforme.
+- lo sforamento viene trasferito integralmente al giorno successivo, che parte quindi in negativo;
+- non viene redistribuito sui giorni rimanenti;
+- si recupera con le quote dei giorni seguenti (es. quota 8 €: -4 €, poi 4 €, poi 12 €).
 
-Quando il budget mensile diventa negativo:
+Formula: budget giornaliero = quota giornaliera × giorno del mese + avanzo del mese precedente − spese varie fino a oggi, con quota giornaliera = (entrata − Salvadanaio − spese fisse) ÷ giorni del mese. Spese programmate e Spese fisse a scadenza non entrano nel calcolo.
 
-- il budget giornaliero mostra direttamente lo sforamento cumulativo;
-- il valore viene evidenziato in rosso;
-- ogni nuovo imprevisto incrementa automaticamente il movimento "Imprevisti" del Salvadanaio.
+Il valore negativo viene evidenziato in rosso. L'ultimo giorno del mese coincide con il saldo del mese.
+
+Quando il saldo del mese (avanzo del mese precedente compreso) diventa negativo, ogni nuova spesa incrementa automaticamente il movimento "Imprevisti" del Salvadanaio, che a fine mese copre lo sforamento; il mese successivo riparte senza debiti.
 
 Il ricalcolo deve essere completamente automatico.
 

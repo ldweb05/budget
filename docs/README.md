@@ -54,7 +54,7 @@ La funzione utilizza due tabelle dedicate:
 
 Le scadenze possono essere generate automaticamente con frequenza in mesi oppure inserite manualmente.
 
-Le rate vengono considerate nel budget del mese di competenza senza essere duplicate in `spese_variabili`.
+Le rate sono solo promemoria: non entrano nel calcolo del budget (2026-10-29).
 
 La competenza viene determinata così:
 
@@ -192,7 +192,7 @@ Tutto il codice è in `www/index.php`:
 - azioni: `add_piano_scadenza` (nome + numero di rate), `add_rata_scadenza` (numero, data, importo, link facoltativo, sotto un piano dell'utente), `update_piano_scadenza` (totale rate), `toggle_rata_scadenza` (PAGATO con data di pagamento = oggi, o rimozione), `update_link_rata_scadenza`, `update_rata_scadenza` (numero e piano sempre; importo e data solo se non pagata; il piano di destinazione deve appartenere all'utente), `delete_voce_scadenza`;
 - il vincolo univoco su (`voce_id`, `numero_rata`) è stato sostituito da un indice normale, perché il numero è scelto dall'utente e le rate possono essere spostate tra piani;
 - funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
-- il totale viene sottratto in tutti e tre i punti di calcolo del budget: dashboard, riporto dell'avanzo dal mese precedente e controllo degli imprevisti all'inserimento di una spesa;
+- dal 2026-10-29 il totale non viene più sottratto dal budget: le rate sono solo promemoria (la funzione resta per la visualizzazione);
 - visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e card "🗓️ Piani a scadenza (NON nel budget)" nella dashboard.
 - l'elenco "Gestisci piani e rate" è ordinato con i piani senza rate in alto, poi per prossima scadenza da pagare, infine i piani saldati; dentro ogni piano per data di scadenza;
 - la dashboard mostra "Rata N/Totale" con `COALESCE(numero_rate, numero di rate inserite)`;
