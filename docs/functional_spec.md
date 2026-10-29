@@ -27,6 +27,15 @@ Quando viene registrata una nuova entrata:
 3. il relativo importo viene accantonato;
 4. il budget disponibile viene ricalcolato.
 
+## Entrate extra
+
+Durante il mese si possono aggiungere entrate extra dalla pagina Salvadanaio (descrizione e importo; la data è sempre il giorno dell'inserimento):
+
+- la percentuale del Salvadanaio del mese si applica anche all'extra (es. 290 € al 10%: 29 € al Salvadanaio, 261 € da spendere);
+- la parte da spendere è divisa in parti uguali dal giorno di inserimento (compreso) all'ultimo giorno del mese e si somma alla quota giornaliera; se il giorno è in negativo, il negativo diminuisce della quota dell'extra;
+- l'extra entra nel saldo del mese, nell'avanzo riportato al mese successivo, nel prelievo Imprevisti e nelle Statistiche;
+- eliminando un extra viene eliminato anche il suo versamento al Salvadanaio; cambiando la percentuale del mese i versamenti degli extra vengono ricalcolati.
+
 ---
 
 # Salvadanaio

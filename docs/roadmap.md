@@ -221,3 +221,11 @@ Le rate sono solo promemoria e non riducono il budget.
 - ✅ Bug della percentuale 0% che cancellava il prelievo Imprevisti.
 - ✅ Mese nuovo con entrata 0 € e avviso "Inserisci l'entrata".
 - ✅ Statistiche allineate alla dashboard e filtrate per utente.
+
+---
+
+# Entrate extra (2026-10-29)
+
+- ✅ Entrate extra dalla pagina Salvadanaio, con quota al Salvadanaio.
+- ✅ Parte da spendere spalmata dal giorno di inserimento a fine mese.
+- ✅ Eliminazione con rimozione del relativo versamento.

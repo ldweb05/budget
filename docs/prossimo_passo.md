@@ -34,6 +34,7 @@ Completato:
 - Backup del database ogni notte sul disco del router (ultimi 30), ripristino provato, esito in `backup_stato` e avviso in dashboard se il backup non riesce (2026-10-24).
 - accesso remoto esclusivamente tramite tunnel WireGuard, HTTP sulla porta `8085`.
 - revisione dei calcoli (2026-10-29): avanzo spalmato sul mese da novembre, avanzo calcolato al momento, Imprevisti sempre uguali allo sforamento, mese nuovo con entrata 0, Statistiche allineate e filtrate per utente.
+- entrate extra (2026-10-29): dalla pagina Salvadanaio, quota al Salvadanaio e resto spalmato dal giorno di inserimento a fine mese.
 
 ## Prossimo intervento
 

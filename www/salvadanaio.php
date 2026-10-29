@@ -2,6 +2,7 @@
 include 'config.php';
 controlla_autenticazione();
 include 'db.php';
+include 'budget_calcoli.php';
 date_default_timezone_set('Europe/Rome');
 $utente_id = intval($_SESSION['utente_id'] ?? 0);
 
@@ -64,6 +65,39 @@ $stmt_mese_rif->execute();
 $dati_mese_rif = $stmt_mese_rif->get_result()->fetch_assoc();
 $stmt_mese_rif->close();
 $percentuale_rif = $dati_mese_rif ? rtrim(rtrim(number_format(floatval($dati_mese_rif['percentuale_risparmio']), 2, ',', ''), '0'), ',') : null;
+
+
+// Azione: Aggiungi entrata extra al mese di riferimento (data = oggi)
+if (isset($_POST['add_entrata_extra']) && $dati_mese_rif) {
+    $desc_extra = trim($_POST['descrizione_extra'] ?? '');
+    $importo_extra = floatval($_POST['importo_extra'] ?? 0);
+    if ($importo_extra > 0 && $desc_extra !== '' && mb_strlen($desc_extra) <= 255) {
+        $id_mese_rif = intval($dati_mese_rif['id']);
+        $data_oggi = date('Y-m-d');
+        $stmt = $conn->prepare("INSERT INTO entrate_extra (mese_id, descrizione, importo, data_entrata) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("isds", $id_mese_rif, $desc_extra, $importo_extra, $data_oggi);
+        $stmt->execute();
+        $stmt->close();
+        budget_sincronizza_extra($conn, $utente_id, $id_mese_rif, floatval($dati_mese_rif['percentuale_risparmio']));
+        budget_sincronizza_imprevisti($conn, $utente_id, $mese_rif, $anno_rif, $mesi_it);
+    }
+    header("Location: salvadanaio.php?mese=" . urlencode($mese_rif) . "&anno=$anno_rif");
+    exit;
+}
+
+// Azione: Elimina entrata extra (il suo versamento al Salvadanaio viene eliminato in cascata)
+if (isset($_POST['delete_entrata_extra']) && $dati_mese_rif) {
+    $id_extra = intval($_POST['id_extra'] ?? 0);
+    $stmt = $conn->prepare("DELETE e FROM entrate_extra e INNER JOIN mesi m ON m.id = e.mese_id WHERE e.id = ? AND m.utente_id = ?");
+    $stmt->bind_param("ii", $id_extra, $utente_id);
+    $stmt->execute();
+    $stmt->close();
+    budget_sincronizza_imprevisti($conn, $utente_id, $mese_rif, $anno_rif, $mesi_it);
+    header("Location: salvadanaio.php?mese=" . urlencode($mese_rif) . "&anno=$anno_rif");
+    exit;
+}
+
+$entrate_extra_rif = $dati_mese_rif ? budget_extra_mese($conn, intval($dati_mese_rif['id']), floatval($dati_mese_rif['percentuale_risparmio'])) : [];
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -113,6 +147,37 @@ $percentuale_rif = $dati_mese_rif ? rtrim(rtrim(number_format(floatval($dati_mes
                         </label>
                         <button type="submit" name="update_budget" class="w-full bg-[#12A0D7] text-white font-semibold py-2 rounded-xl text-xs shadow-sm hover:opacity-90 transition">Salva</button>
                     </form>
+                <?php else: ?>
+                    <p class="text-xs text-gray-400">Il mese non è ancora stato configurato: inizialo dalla dashboard.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-700 mb-1">➕ Entrate extra — <?php echo $mesi_it[$mese_rif] . ' ' . $anno_rif; ?></h3>
+                <p class="text-[11px] text-gray-400 mb-3">Spalmate da oggi a fine mese; il <?php echo $percentuale_rif ?? '0'; ?>% va al Salvadanaio.</p>
+                <?php if ($dati_mese_rif): ?>
+                    <form method="POST" class="space-y-2 mb-3">
+                        <input type="text" name="descrizione_extra" maxlength="255" placeholder="Descrizione (es. Lavoro Rossi)" required class="w-full px-3 py-2 border rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" step="0.01" min="0.01" name="importo_extra" placeholder="Importo €" required class="w-full px-3 py-2 border rounded-xl bg-gray-50 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" name="add_entrata_extra" class="w-full bg-[#008080] text-white font-semibold py-2 rounded-xl text-xs shadow-sm hover:opacity-90 transition">Aggiungi entrata extra</button>
+                    </form>
+                    <?php if (empty($entrate_extra_rif)): ?>
+                        <p class="text-xs text-gray-400">Nessuna entrata extra in questo mese.</p>
+                    <?php endif; ?>
+                    <ul class="divide-y divide-gray-100">
+                        <?php foreach ($entrate_extra_rif as $ex): ?>
+                        <li class="py-2 flex justify-between items-center gap-2 text-xs">
+                            <div>
+                                <p class="text-gray-700 font-medium"><?php echo htmlspecialchars($ex['descrizione']); ?></p>
+                                <p class="text-[10px] text-gray-400"><?php echo date('d/m/Y', strtotime($ex['data_entrata'])); ?> · +<?php echo number_format($ex['importo'], 2, ',', '.'); ?>€ (<?php echo number_format($ex['quota_salvadanaio'], 2, ',', '.'); ?>€ al Salvadanaio)</p>
+                            </div>
+                            <form method="POST" onsubmit="return confirm('Eliminare questa entrata extra? Verrà tolta anche la sua quota dal Salvadanaio.')">
+                                <input type="hidden" name="id_extra" value="<?php echo intval($ex['id']); ?>">
+                                <button type="submit" name="delete_entrata_extra" class="text-red-500 font-bold hover:underline">Elimina</button>
+                            </form>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
                 <?php else: ?>
                     <p class="text-xs text-gray-400">Il mese non è ancora stato configurato: inizialo dalla dashboard.</p>
                 <?php endif; ?>

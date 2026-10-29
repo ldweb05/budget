@@ -34,13 +34,14 @@ Componenti principali verificati:
 - `www/index.php`: area utente, dashboard e calcolo del budget personale;
 - `www/spese_programmate.php`: gestione di piani, rate, scadenze, pagamenti ed estinzioni anticipate;
 - `www/salvadanaio.php`: saldo, storico e movimenti del Salvadanaio;
-- `www/budget_calcoli.php`: calcoli condivisi da dashboard e Statistiche (saldo del mese, avanzo calcolato al momento, prelievo Imprevisti sincronizzato);
+- `www/budget_calcoli.php`: calcoli condivisi da dashboard, Statistiche e Salvadanaio (saldo del mese, avanzo calcolato al momento, prelievo Imprevisti sincronizzato, entrate extra: `budget_extra_mese()`, `budget_quota_extra_fino_a()`, `budget_sincronizza_extra()`);
 - `www/admin.php`: gestione amministrativa degli utenti;
 - `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
 - `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;
 - `migrations/009_create_spese_scadenza.sql`: tabelle `voci_spese_scadenza` e `rate_spese_scadenza` delle Spese fisse a scadenza;
 - `migrations/010_piani_spese_scadenza.sql`: colonna `numero_rate` dei piani e indice non univoco su (`voce_id`, `numero_rata`);
 - `migrations/011_create_backup_stato.sql`: tabella `backup_stato` con l'esito dei backup notturni;
+- `migrations/012_create_entrate_extra.sql`: tabella `entrate_extra` (`mese_id`, `descrizione`, `importo`, `data_entrata`) e colonna `fondo_risparmio.entrata_extra_id` (univoca, `ON DELETE CASCADE`) che collega il versamento al Salvadanaio all'extra;
 - `migrations/`: migrazioni del database;
 - `docs/`: documentazione ufficiale.
 

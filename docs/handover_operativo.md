@@ -426,3 +426,27 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Sandbox con MariaDB e dati di ottobre: ottobre 91,37 € / 115,37 €; novembre 670 € → 640,37 € (21,35 €/giorno); correzione tardiva di ottobre riportata; prelievo che compare e sparisce; 0% senza perdita del prelievo; altro utente mai visibile.
 - Test nel browser dell'utente su ottobre: dashboard, Statistiche, spesa di prova da 200 € con prelievo 84,63 € poi annullato.
 - Punto di ripristino: tag `checkpoint-pre-revisione-calcoli`, dump e archivio del 2026-10-29 11:31 in `~/backups/budget/`.
+
+# 2026-10-29 — Entrate extra
+
+## Cosa è stato fatto
+
+- Migrazione `012_create_entrate_extra.sql`: tabella `entrate_extra` e colonna `fondo_risparmio.entrata_extra_id` (univoca, FK con `ON DELETE CASCADE`).
+- `www/budget_calcoli.php`: `budget_extra_mese()`, `budget_totale_extra()`, `budget_quota_extra_fino_a()`, `budget_sincronizza_extra()`; l'extra netto entra in `budget_riepilogo_mese()` (saldo, avanzo, Imprevisti, Statistiche).
+- `www/index.php`: extra netto sommato alla disponibilità del mese e spalmato dal giorno di inserimento a fine mese in "Oggi puoi spendere"; riga "Entrate extra del mese"; versamenti degli extra ricalcolati in `update_budget`.
+- `www/salvadanaio.php`: card "Entrate extra" con inserimento, elenco ed eliminazione (azioni `add_entrata_extra`, `delete_entrata_extra`, con verifica di `utente_id`).
+
+## Decisioni dell'utente
+
+- Percentuale del Salvadanaio applicata anche all'extra (290 € al 10%: 29 € al Salvadanaio, 261 € spalmati).
+- Inserimento dalla pagina Salvadanaio; data sempre uguale al giorno di inserimento (per correggere si elimina e si reinserisce).
+
+## Note tecniche
+
+- Il versamento dell'extra ha `mese_id` NULL (il vincolo univoco `mese_id`+`tipo` è già usato dal versamento automatico del mese) ed è collegato all'extra tramite `entrata_extra_id`.
+
+## Verifiche
+
+- Sandbox: migrazione eseguita due volte senza errori; 290 € il 29/10 → +29 € al Salvadanaio, oggi 178,37 €, disponibilità 376,37 €; spalmatura dal giorno 15 su 30 giorni (16,31 € al giorno); cambio percentuale; eliminazione con cascata; extra di un altro utente non eliminabile.
+- Test nel browser dell'utente: inserimento, dashboard, Statistiche, eliminazione.
+- Punto di ripristino: tag `checkpoint-pre-entrate-extra`, dump e archivio del 2026-10-29 19:12 in `~/backups/budget/`.

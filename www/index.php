@@ -244,6 +244,7 @@ if (isset($_POST['update_budget'])) {
     $mese_modificato = $stmt_nome_mese->get_result()->fetch_assoc();
     $stmt_nome_mese->close();
     if ($mese_modificato) {
+        budget_sincronizza_extra($conn, $utente_id, $mese_id, $percentuale_risparmio);
         budget_sincronizza_imprevisti($conn, $utente_id, $mese_modificato['nome'], $mese_modificato['anno'], $mesi_it);
     }
 
@@ -931,6 +932,10 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             + ($avanzo_spalmato ? $avanzo_riportato : 0.0);
         $budget_restante_mese = $budget_variabile_iniziale + $avanzo_primo_giorno - $tot_var;
         budget_sincronizza_imprevisti($conn, $utente_id, $mese_attivo, $anno_attivo, $mesi_it);
+        // Entrate extra: al netto del Salvadanaio, spalmate dal giorno di inserimento a fine mese.
+        $entrate_extra_mese = budget_extra_mese($conn, $mese_id, $percentuale_risparmio);
+        $totale_extra_mese = budget_totale_extra($entrate_extra_mese);
+        $budget_restante_mese += $totale_extra_mese;
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
         $giorni_totali_mese = date('t', strtotime("1 $mese_attivo $anno_attivo"));
@@ -989,6 +994,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             $budget_giornaliero =
                 $quota_giornaliera * $giorno_corrente
                 + $avanzo_primo_giorno
+                + budget_quota_extra_fino_a($entrate_extra_mese, $mese_attivo, $anno_attivo, $giorno_corrente)
                 - $spese_fino_a_oggi;
         } else {
             $giorni_rimasti = 1;
@@ -1013,6 +1019,9 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                     </div>
                     <p class="text-xs text-gray-500 leading-relaxed">
                         Disponibilità rimasta: <span class="font-semibold"><?php echo number_format($budget_restante_mese, 2, ',', '.'); ?>€</span>
+                        <?php if ($totale_extra_mese > 0): ?>
+                            <br>Entrate extra del mese (al netto del Salvadanaio): <span class="font-semibold">+<?php echo number_format($totale_extra_mese, 2, ',', '.'); ?>€</span>
+                        <?php endif; ?>
                         <?php if ($tot_programmate > 0): ?>
                             <br>Rate programmate del mese:
                             <span class="font-semibold">
