@@ -211,3 +211,13 @@ Le rate sono solo promemoria e non riducono il budget.
 - ✅ Esito registrato nella tabella `backup_stato` con fase e motivo in caso di errore.
 - ✅ Avviso in dashboard (rosso: backup non riuscito; giallo: nessun backup da più di 2 giorni) e riga "Ultimo backup" in fondo alla pagina.
 - ✅ Permessi `600` su `.env`, punti di ripristino e log; eliminati vecchi archivi locali con credenziali dismesse.
+
+---
+
+# Revisione dei calcoli (2026-10-29)
+
+- ✅ Avanzo del mese precedente spalmato su tutto il mese (da novembre 2026) e calcolato al momento.
+- ✅ Prelievo "Imprevisti" sempre uguale allo sforamento del mese.
+- ✅ Bug della percentuale 0% che cancellava il prelievo Imprevisti.
+- ✅ Mese nuovo con entrata 0 € e avviso "Inserisci l'entrata".
+- ✅ Statistiche allineate alla dashboard e filtrate per utente.

@@ -40,7 +40,7 @@ Il Salvadanaio:
 - collega ogni movimento automatico al relativo mese;
 - consente versamenti manuali aggiuntivi indipendenti dalla percentuale;
 - consente prelievi manuali;
-- copre automaticamente gli imprevisti quando il budget mensile viene superato;
+- copre automaticamente gli imprevisti quando il budget mensile viene superato: il prelievo "Imprevisti" del mese è ricalcolato a ogni modifica ed è sempre uguale allo sforamento del mese (0 se il mese è in attivo o l'entrata non è ancora inserita);
 - registra gli imprevisti come movimento permanente del Salvadanaio;
 - non partecipa al budget giornaliero;
 - non viene mostrato nella dashboard principale;
@@ -172,11 +172,19 @@ Se una giornata termina con uno sforamento:
 - non viene redistribuito sui giorni rimanenti;
 - si recupera con le quote dei giorni seguenti (es. quota 8 €: -4 €, poi 4 €, poi 12 €).
 
-Formula: budget giornaliero = quota giornaliera × giorno del mese + avanzo del mese precedente − spese varie fino a oggi, con quota giornaliera = (entrata − Salvadanaio − spese fisse) ÷ giorni del mese. Spese programmate e Spese fisse a scadenza non entrano nel calcolo.
+Formula (da novembre 2026): budget giornaliero = quota giornaliera × giorno del mese − spese varie fino a oggi, con quota giornaliera = (entrata − Salvadanaio − spese fisse + avanzo del mese precedente) ÷ giorni del mese. Il Salvadanaio si calcola solo sull'entrata, non sull'avanzo. Esempio: entrata 670 €, 10%, spese fisse 78 €, avanzo 80 € → (670 − 67 − 78 + 80) ÷ 30 = 20,17 € al giorno.
+
+Fino a ottobre 2026 l'avanzo del mese precedente si sommava interamente al primo giorno.
+
+Spese programmate e Spese fisse a scadenza non entrano nel calcolo.
+
+L'avanzo del mese precedente è calcolato al momento (da novembre 2026): una correzione al mese precedente si riflette subito sul mese successivo. Se il mese precedente chiude in negativo l'avanzo è 0 e lo sforamento è coperto dal Salvadanaio.
+
+Un mese nuovo nasce con entrata 0 €, la percentuale del mese precedente e le spese fisse Condominio e Telefono non spuntate e senza link; finché l'entrata è 0 la dashboard mostra l'avviso "Inserisci l'entrata".
 
 Il valore negativo viene evidenziato in rosso. L'ultimo giorno del mese coincide con il saldo del mese.
 
-Quando il saldo del mese (avanzo del mese precedente compreso) diventa negativo, ogni nuova spesa incrementa automaticamente il movimento "Imprevisti" del Salvadanaio, che a fine mese copre lo sforamento; il mese successivo riparte senza debiti.
+Quando il saldo del mese (avanzo del mese precedente compreso) diventa negativo, il movimento "Imprevisti" del Salvadanaio è uguale allo sforamento e a fine mese lo copre; il mese successivo riparte senza debiti. La pagina Statistiche usa lo stesso calcolo della dashboard.
 
 Il ricalcolo deve essere completamente automatico.
 

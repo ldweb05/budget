@@ -2,6 +2,8 @@
 include 'config.php';
 controlla_autenticazione();
 include 'db.php';
+include 'budget_calcoli.php';
+$utente_id = intval($_SESSION['utente_id'] ?? 0);
 date_default_timezone_set('Europe/Rome');
 
 $mese_corrente = date('F');
@@ -12,13 +14,13 @@ $anno_precedente = date('Y', strtotime('first day of last month'));
 $mesi_it = ["January" => "Gennaio", "February" => "Febbraio", "March" => "Marzo", "April" => "Aprile", "May" => "Maggio", "June" => "Giugno", "July" => "Luglio", "August" => "Agosto", "September" => "Settembre", "October" => "Ottobre", "November" => "Novembre", "December" => "Dicembre"];
 
 // 1. RECUPERO DATI MESE CORRENTE PER IL PRIMO GRAFICO
-$query_mese = $conn->prepare("SELECT * FROM mesi WHERE nome = ? AND anno = ?");
-$query_mese->bind_param("si", $mese_corrente, $anno_corrente);
+$query_mese = $conn->prepare("SELECT * FROM mesi WHERE utente_id = ? AND nome = ? AND anno = ?");
+$query_mese->bind_param("isi", $utente_id, $mese_corrente, $anno_corrente);
 $query_mese->execute();
 $mese_dati = $query_mese->get_result()->fetch_assoc();
 
-$query_precedente = $conn->prepare("SELECT id FROM mesi WHERE nome = ? AND anno = ?");
-$query_precedente->bind_param("si", $mese_precedente, $anno_precedente);
+$query_precedente = $conn->prepare("SELECT id FROM mesi WHERE utente_id = ? AND nome = ? AND anno = ?");
+$query_precedente->bind_param("isi", $utente_id, $mese_precedente, $anno_precedente);
 $query_precedente->execute();
 $mese_precedente_dati = $query_precedente->get_result()->fetch_assoc();
 
@@ -57,21 +59,12 @@ if ($mese_precedente_dati) {
         <?php if ($mese_dati): 
             $mese_id = $mese_dati['id'];
             
-            // Calcolo spese fisse
-            $res_fisse = $conn->query("SELECT SUM(importo) as totale FROM spese_fisse WHERE mese_id = $mese_id");
-            $tot_fisse = $res_fisse->fetch_assoc()['totale'] ?? 0;
-
-            // Calcolo spese variabili
-            $res_var = $conn->query("SELECT SUM(importo) as totale FROM spese_variabili WHERE mese_id = $mese_id");
-            $tot_var = $res_var->fetch_assoc()['totale'] ?? 0;
-
-            $entrata_totale = $mese_dati['entrata'];
-            $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
-            $quota_risparmio = $entrata_totale * ($percentuale_risparmio / 100);
-            
-            // Budget iniziale per spese varie (il 100% della nostra barra)
-            $budget_variabile_iniziale = $entrata_totale - $quota_risparmio - $tot_fisse;
-            $budget_restante_mese = $budget_variabile_iniziale - $tot_var;
+            // Stesso calcolo della dashboard (www/budget_calcoli.php):
+            // budget del mese = entrata - Salvadanaio - spese fisse + avanzo del mese precedente
+            $riepilogo_mese = budget_riepilogo_mese($conn, $utente_id, $mese_corrente, $anno_corrente);
+            $tot_var = $riepilogo_mese['totale_variabili'];
+            $budget_variabile_iniziale = $riepilogo_mese['budget_mese'];
+            $budget_restante_mese = $riepilogo_mese['saldo'];
 
             // Calcolo percentuale spesa
             if ($budget_variabile_iniziale > 0) {
@@ -145,7 +138,10 @@ if ($mese_precedente_dati) {
             <div class="space-y-5">
                 <?php
                 // Prendi tutti i mesi registrati
-                $tutti_mesi = $conn->query("SELECT * FROM mesi ORDER BY anno DESC, FIELD(nome, 'December', 'November', 'October', 'September', 'August', 'July', 'June', 'May', 'April', 'March', 'February', 'January')");
+                $tutti_mesi_stmt = $conn->prepare("SELECT * FROM mesi WHERE utente_id = ? ORDER BY anno DESC, FIELD(nome, 'December', 'November', 'October', 'September', 'August', 'July', 'June', 'May', 'April', 'March', 'February', 'January')");
+                $tutti_mesi_stmt->bind_param("i", $utente_id);
+                $tutti_mesi_stmt->execute();
+                $tutti_mesi = $tutti_mesi_stmt->get_result();
                 
                 if ($tutti_mesi->num_rows == 0) {
                     echo "<p class='text-sm text-gray-400 text-center py-4'>Nessun dato storico presente.</p>";
@@ -154,18 +150,10 @@ if ($mese_precedente_dati) {
                 while ($m = $tutti_mesi->fetch_assoc()):
                     $m_id = $m['id'];
                     
-                    // Calcola spese fisse del mese in ciclo
-                    $rf = $conn->query("SELECT SUM(importo) as totale FROM spese_fisse WHERE mese_id = $m_id");
-                    $tf = $rf->fetch_assoc()['totale'] ?? 0;
-
-                    // Calcola variabli del mese in ciclo
-                    $rv = $conn->query("SELECT SUM(importo) as totale FROM spese_variabili WHERE mese_id = $m_id");
-                    $tv = $rv->fetch_assoc()['totale'] ?? 0;
-
-                    $entrata = $m['entrata'];
-                    $risp = $entrata * ($m['percentuale_risparmio'] / 100);
-                    $b_iniziale = $entrata - $risp - $tf;
-                    $b_restante = $b_iniziale - $tv;
+                    // Stesso calcolo della dashboard (www/budget_calcoli.php)
+                    $riepilogo_m = budget_riepilogo_mese($conn, $utente_id, $m['nome'], $m['anno']);
+                    $b_iniziale = $riepilogo_m['budget_mese'];
+                    $b_restante = $riepilogo_m['saldo'];
 
                     // Calcolo percentuale di avanzo per la barra
                     // Se b_restante > 0 significa che sono avanzati soldi. Più ne avanzano, più la barra è piena.
@@ -200,13 +188,17 @@ if ($mese_precedente_dati) {
             <p class="text-xs text-gray-400 mb-4">Totale spese variabili per anno</p>
 
             <?php
-            $analisi_annuale = $conn->query("
+            $analisi_annuale_stmt = $conn->prepare("
                 SELECT anno, SUM(spese_variabili.importo) AS totale
                 FROM mesi
                 LEFT JOIN spese_variabili ON spese_variabili.mese_id = mesi.id
+                WHERE mesi.utente_id = ?
                 GROUP BY anno
                 ORDER BY anno DESC
             ");
+            $analisi_annuale_stmt->bind_param("i", $utente_id);
+            $analisi_annuale_stmt->execute();
+            $analisi_annuale = $analisi_annuale_stmt->get_result();
 
             while ($anno = $analisi_annuale->fetch_assoc()):
             ?>

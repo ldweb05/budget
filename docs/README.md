@@ -34,6 +34,7 @@ Componenti principali verificati:
 - `www/index.php`: area utente, dashboard e calcolo del budget personale;
 - `www/spese_programmate.php`: gestione di piani, rate, scadenze, pagamenti ed estinzioni anticipate;
 - `www/salvadanaio.php`: saldo, storico e movimenti del Salvadanaio;
+- `www/budget_calcoli.php`: calcoli condivisi da dashboard e Statistiche (saldo del mese, avanzo calcolato al momento, prelievo Imprevisti sincronizzato);
 - `www/admin.php`: gestione amministrativa degli utenti;
 - `migrations/006_create_spese_programmate.sql`: creazione delle tabelle dedicate alle Spese programmate;
 - `migrations/008_aggiungi_link_documento_spese_fisse.sql`: colonna `link_documento` della tabella `spese_fisse`;

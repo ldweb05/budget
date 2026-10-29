@@ -397,3 +397,32 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 
 - Test nel sandbox, `php -l` nel container, test nel browser dell'utente (cifre attese, spesa di prova da 1 € senza prelievo Imprevisti).
 - Punto di ripristino: tag `checkpoint-pre-conto-giornaliero`, dump del 2026-10-29 10:11 in `~/backups/budget/`.
+
+# 2026-10-29 — Revisione dei calcoli del budget
+
+## Problemi trovati
+
+- Prelievo "Imprevisti" calcolato solo all'inserimento di una spesa: non si riduceva cancellando una spesa e non partiva se il mese andava in rosso per altri motivi.
+- Con percentuale 0% l'azione `update_budget` cancellava tutti i movimenti del mese nel Salvadanaio (anche il prelievo Imprevisti).
+- Avanzo del mese precedente salvato una sola volta alla creazione del mese: le correzioni successive al mese precedente non venivano riportate.
+- `statistiche.php` non filtrava per `utente_id` (mesi di tutti gli utenti) e non contava l'avanzo del mese precedente.
+- Mese nuovo creato con entrata 900 € e 15% fissi.
+
+## Cosa è stato fatto
+
+- Nuovo `www/budget_calcoli.php`: `budget_riepilogo_mese()`, `budget_saldo_mese()`, `budget_avanzo_mese()` (avanzo calcolato al momento da novembre 2026), `budget_sincronizza_imprevisti()` (da ottobre 2026).
+- `www/index.php`: avanzo spalmato sul mese da novembre 2026 (ottobre invariato, scelta dell'utente); Imprevisti sincronizzati a ogni caricamento della dashboard e dopo `update_budget`; rimosso il vecchio prelievo incrementale in `add_variabile`; `update_budget` con 0% cancella solo il versamento automatico; mese nuovo con entrata 0 e percentuale del mese precedente; avviso "Inserisci l'entrata".
+- `www/statistiche.php`: tutte le query filtrate per utente e con prepared statement; stesso calcolo della dashboard.
+
+## Decisioni dell'utente
+
+- Avanzo positivo sommato al budget del mese e diviso per i giorni; Salvadanaio calcolato solo sull'entrata.
+- Mattina: "oggi puoi spendere" include già la quota del giorno.
+- Spese fisse del mese nuovo: solo Condominio e Telefono (le utenze variabili vanno tra le spese varie).
+- Entrata variabile: mese nuovo a 0 €, da inserire dalla pagina Salvadanaio.
+
+## Verifiche
+
+- Sandbox con MariaDB e dati di ottobre: ottobre 91,37 € / 115,37 €; novembre 670 € → 640,37 € (21,35 €/giorno); correzione tardiva di ottobre riportata; prelievo che compare e sparisce; 0% senza perdita del prelievo; altro utente mai visibile.
+- Test nel browser dell'utente su ottobre: dashboard, Statistiche, spesa di prova da 200 € con prelievo 84,63 € poi annullato.
+- Punto di ripristino: tag `checkpoint-pre-revisione-calcoli`, dump e archivio del 2026-10-29 11:31 in `~/backups/budget/`.

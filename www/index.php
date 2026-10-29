@@ -8,6 +8,7 @@ if (($_SESSION['ruolo'] ?? '') === 'admin') {
 }
 
 include 'db.php';
+include 'budget_calcoli.php';
 date_default_timezone_set('Europe/Rome');
 $utente_id = intval($_SESSION['utente_id'] ?? 0);
 
@@ -58,6 +59,7 @@ if (isset($_POST['crea_mese'])) {
 
     // Calcolo dell'avanzo da riportare dal mese precedente (solo se positivo).
     $avanzo_da_riportare = 0.0;
+    $percentuale_nuova = 15.0;
     $data_mese_creare = DateTime::createFromFormat('F Y', "$m_creare $a_creare");
 
     if ($data_mese_creare) {
@@ -127,6 +129,7 @@ if (isset($_POST['crea_mese'])) {
 
             $entrata_prec = floatval($mese_precedente['entrata']);
             $percentuale_prec = floatval($mese_precedente['percentuale_risparmio']);
+            $percentuale_nuova = $percentuale_prec;
             $avanzo_riportato_prec = floatval($mese_precedente['avanzo_riportato'] ?? 0);
             $quota_risparmio_prec = $entrata_prec * ($percentuale_prec / 100);
 
@@ -142,8 +145,8 @@ if (isset($_POST['crea_mese'])) {
         }
     }
 
-    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (utente_id, nome, anno, entrata, percentuale_risparmio, avanzo_riportato) VALUES (?, ?, ?, 900.00, 15, ?)");
-    $ins_mese->bind_param("isid", $utente_id, $m_creare, $a_creare, $avanzo_da_riportare);
+    $ins_mese = $conn->prepare("INSERT IGNORE INTO mesi (utente_id, nome, anno, entrata, percentuale_risparmio, avanzo_riportato) VALUES (?, ?, ?, 0, ?, ?)");
+    $ins_mese->bind_param("isidd", $utente_id, $m_creare, $a_creare, $percentuale_nuova, $avanzo_da_riportare);
     $ins_mese->execute();
     $mese_id = $conn->insert_id;
 
@@ -229,10 +232,19 @@ if (isset($_POST['update_budget'])) {
         $stmt_fondo->execute();
         $stmt_fondo->close();
     } else {
-        $stmt_elimina_fondo = $conn->prepare("DELETE FROM fondo_risparmio WHERE mese_id = ? AND utente_id = ?");
+        $stmt_elimina_fondo = $conn->prepare("DELETE FROM fondo_risparmio WHERE mese_id = ? AND utente_id = ? AND tipo = 'versamento'");
         $stmt_elimina_fondo->bind_param("ii", $mese_id, $utente_id);
         $stmt_elimina_fondo->execute();
         $stmt_elimina_fondo->close();
+    }
+
+    $stmt_nome_mese = $conn->prepare("SELECT nome, anno FROM mesi WHERE id = ? AND utente_id = ?");
+    $stmt_nome_mese->bind_param("ii", $mese_id, $utente_id);
+    $stmt_nome_mese->execute();
+    $mese_modificato = $stmt_nome_mese->get_result()->fetch_assoc();
+    $stmt_nome_mese->close();
+    if ($mese_modificato) {
+        budget_sincronizza_imprevisti($conn, $utente_id, $mese_modificato['nome'], $mese_modificato['anno'], $mesi_it);
     }
 
     header("Location: $pagina_ritorno?mese=" . urlencode($mese_attivo) . "&anno=$anno_attivo");
@@ -593,34 +605,6 @@ if (isset($_POST['add_variabile'])) {
             $ins_var->execute();
             $ins_var->close();
 
-            $budget_dopo = $budget_prima - $importo;
-            $sforamento_prima = max(0, -$budget_prima);
-            $sforamento_dopo = max(0, -$budget_dopo);
-            $nuovo_prelievo = $sforamento_dopo - $sforamento_prima;
-
-            if ($nuovo_prelievo > 0) {
-                $causale_automatica = "Imprevisti - " . $mese_display;
-
-                $stmt_prelievo = $conn->prepare(
-                    "INSERT INTO fondo_risparmio
-                        (utente_id, mese_id, importo, tipo, causale, data_movimento)
-                     VALUES (?, ?, ?, 'prelievo', ?, ?)
-                     ON DUPLICATE KEY UPDATE
-                        importo = importo + VALUES(importo),
-                        causale = VALUES(causale),
-                        data_movimento = VALUES(data_movimento)"
-                );
-                $stmt_prelievo->bind_param(
-                    "iidss",
-                    $utente_id,
-                    $mese_id,
-                    $nuovo_prelievo,
-                    $causale_automatica,
-                    $data_oggi
-                );
-                $stmt_prelievo->execute();
-                $stmt_prelievo->close();
-            }
         }
     }
 
@@ -937,11 +921,16 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
         $entrata_dopo_risparmio = $entrata_totale - $quota_risparmio;
         // Avanzo positivo riportato dal mese precedente (0 se il mese precedente
         // ha chiuso in negativo, o se non esiste ancora un mese precedente).
-        $avanzo_riportato = floatval($mese_dati['avanzo_riportato'] ?? 0);
+        // Da novembre 2026 l'avanzo è calcolato al momento e spalmato sul mese.
+        $avanzo_riportato = budget_avanzo_mese($conn, $utente_id, $mese_attivo, $anno_attivo);
+        $avanzo_spalmato = budget_avanzo_spalmato($mese_attivo, $anno_attivo);
+        $avanzo_primo_giorno = $avanzo_spalmato ? 0.0 : $avanzo_riportato;
         $budget_variabile_iniziale =
             $entrata_dopo_risparmio
-            - $tot_fisse;
-        $budget_restante_mese = $budget_variabile_iniziale + $avanzo_riportato - $tot_var;
+            - $tot_fisse
+            + ($avanzo_spalmato ? $avanzo_riportato : 0.0);
+        $budget_restante_mese = $budget_variabile_iniziale + $avanzo_primo_giorno - $tot_var;
+        budget_sincronizza_imprevisti($conn, $utente_id, $mese_attivo, $anno_attivo, $mesi_it);
 
         // Calcolo giorni rimasti intelligente (se guardiamo un mese vecchio, i giorni rimasti sono 1 per bloccare il budget finale)
         $giorni_totali_mese = date('t', strtotime("1 $mese_attivo $anno_attivo"));
@@ -999,7 +988,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             $spese_fino_a_oggi = array_sum($spese_per_giorno);
             $budget_giornaliero =
                 $quota_giornaliera * $giorno_corrente
-                + $avanzo_riportato
+                + $avanzo_primo_giorno
                 - $spese_fino_a_oggi;
         } else {
             $giorni_rimasti = 1;
@@ -1012,6 +1001,10 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
 
             <div class="contents md:block md:space-y-6">
                 <div class="order-1 md:order-none bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center">
+                    <?php if ($entrata_totale <= 0): ?>
+                    <p class="text-sm text-gray-600 my-4">Inserisci l'entrata di <strong><?php echo $mese_display; ?></strong> per calcolare quanto puoi spendere.</p>
+                    <a href="salvadanaio.php?mese=<?php echo urlencode($mese_attivo); ?>&anno=<?php echo $anno_attivo; ?>" class="inline-block bg-[#12A0D7] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition">Inserisci l'entrata</a>
+                    <?php else: ?>
                     <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                         <?php echo ($giorni_rimasti > 1) ? "Oggi puoi spendere massimo" : "Avanzo finale del mese"; ?>
                     </h2>
@@ -1030,6 +1023,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                             <br>Giorni alla fine del mese: <span class="font-semibold"><?php echo $giorni_rimasti; ?></span>
                         <?php endif; ?>
                     </p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="order-3 md:order-none bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
