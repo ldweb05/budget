@@ -125,7 +125,7 @@ if (isset($_POST['crea_mese'])) {
                 $stmt_programmate_prec->get_result()->fetch_assoc()['totale'] ?? 0
             );
             $stmt_programmate_prec->close();
-            $tot_scadenza_prec = totale_rate_scadenza_pagate($conn, $utente_id, $anno_mese_precedente, $numero_mese_precedente);
+            $tot_scadenza_prec = budget_totale_scadenza_pagate($conn, $utente_id, $nome_mese_precedente, $anno_mese_precedente);
 
             $entrata_prec = floatval($mese_precedente['entrata']);
             $percentuale_prec = floatval($mese_precedente['percentuale_risparmio']);
@@ -137,7 +137,8 @@ if (isset($_POST['crea_mese'])) {
                 ($entrata_prec - $quota_risparmio_prec)
                 - $tot_fisse_prec
                 + $avanzo_riportato_prec
-                - $tot_var_prec;
+                - $tot_var_prec
+                - $tot_scadenza_prec;
 
             if ($budget_finale_prec > 0) {
                 $avanzo_da_riportare = $budget_finale_prec;
@@ -327,24 +328,6 @@ function data_scadenza_valida($valore) {
     $valore = trim((string) $valore);
     $data = DateTimeImmutable::createFromFormat('Y-m-d', $valore);
     return ($data && $data->format('Y-m-d') === $valore) ? $valore : false;
-}
-
-// Totale delle rate a scadenza PAGATE nel mese indicato (competenza = mese del pagamento)
-function totale_rate_scadenza_pagate($conn, $utente_id, $anno, $numero_mese) {
-    $stmt = $conn->prepare(
-        "SELECT COALESCE(SUM(r.importo), 0) AS totale
-         FROM rate_spese_scadenza r
-         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
-         WHERE v.utente_id = ?
-           AND r.pagata = 1
-           AND YEAR(r.data_pagamento) = ?
-           AND MONTH(r.data_pagamento) = ?"
-    );
-    $stmt->bind_param("iii", $utente_id, $anno, $numero_mese);
-    $stmt->execute();
-    $totale = floatval($stmt->get_result()->fetch_assoc()['totale'] ?? 0);
-    $stmt->close();
-    return $totale;
 }
 
 // Azione: Crea un nuovo piano di pagamento (nome + numero di rate)
@@ -914,7 +897,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
                 ->fetch_assoc()['totale'] ?? 0
         );
         $res_programmate_stmt->close();
-        $tot_scadenza_pagate = totale_rate_scadenza_pagate($conn, $utente_id, $anno_attivo, $numero_mese_attivo);
+        $tot_scadenza_pagate = budget_totale_scadenza_pagate($conn, $utente_id, $mese_attivo, $anno_attivo);
 
         $entrata_totale = $mese_dati['entrata'];
         $percentuale_risparmio = floatval($mese_dati['percentuale_risparmio']);
@@ -930,7 +913,7 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
             $entrata_dopo_risparmio
             - $tot_fisse
             + ($avanzo_spalmato ? $avanzo_riportato : 0.0);
-        $budget_restante_mese = $budget_variabile_iniziale + $avanzo_primo_giorno - $tot_var;
+        $budget_restante_mese = $budget_variabile_iniziale + $avanzo_primo_giorno - $tot_var - $tot_scadenza_pagate;
         budget_sincronizza_imprevisti($conn, $utente_id, $mese_attivo, $anno_attivo, $mesi_it);
         // Entrate extra: al netto del Salvadanaio, spalmate dal giorno di inserimento a fine mese.
         $entrate_extra_mese = budget_extra_mese($conn, $mese_id, $percentuale_risparmio);
@@ -986,11 +969,33 @@ $elenco_mesi_db = $elenco_mesi_stmt->get_result();
 
             $res_spese_giornaliere_stmt->close();
 
+            // Rate dei Piani a scadenza pagate da inizio mese a oggi: uscita di cassa
+            // reale, pesano sul budget giornaliero dal giorno del pagamento in avanti.
+            $res_scadenza_pagate_oggi_stmt = $conn->prepare(
+                "SELECT COALESCE(SUM(r.importo), 0) AS totale
+                 FROM rate_spese_scadenza r
+                 INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+                 WHERE v.utente_id = ?
+                   AND r.pagata = 1
+                   AND r.data_pagamento BETWEEN ? AND ?"
+            );
+            $res_scadenza_pagate_oggi_stmt->bind_param(
+                "iss",
+                $utente_id,
+                $inizio_mese_attivo,
+                $data_oggi
+            );
+            $res_scadenza_pagate_oggi_stmt->execute();
+            $tot_scadenza_pagate_oggi = floatval(
+                $res_scadenza_pagate_oggi_stmt->get_result()->fetch_assoc()['totale'] ?? 0
+            );
+            $res_scadenza_pagate_oggi_stmt->close();
+
             // Conto giornaliero puro: ogni giorno matura la stessa quota
             // (budget variabile del mese / giorni del mese). Avanzi e sforamenti
             // passano interi al giorno successivo, anche se negativi.
             $quota_giornaliera = $budget_variabile_iniziale / $giorni_totali_mese;
-            $spese_fino_a_oggi = array_sum($spese_per_giorno);
+            $spese_fino_a_oggi = array_sum($spese_per_giorno) + $tot_scadenza_pagate_oggi;
             $budget_giornaliero =
                 $quota_giornaliera * $giorno_corrente
                 + $avanzo_primo_giorno

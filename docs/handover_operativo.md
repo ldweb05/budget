@@ -450,3 +450,29 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - Sandbox: migrazione eseguita due volte senza errori; 290 € il 29/10 → +29 € al Salvadanaio, oggi 178,37 €, disponibilità 376,37 €; spalmatura dal giorno 15 su 30 giorni (16,31 € al giorno); cambio percentuale; eliminazione con cascata; extra di un altro utente non eliminabile.
 - Test nel browser dell'utente: inserimento, dashboard, Statistiche, eliminazione.
 - Punto di ripristino: tag `checkpoint-pre-entrate-extra`, dump e archivio del 2026-10-29 19:12 in `~/backups/budget/`.
+
+# 2026-11-18 — Piani a scadenza: le rate pagate tornano a scalare il budget
+
+## Problema
+
+- L'utente ha pagato la prima rata di un nuovo Piano a scadenza e "Oggi puoi spendere" non è cambiato.
+- Analisi: dal 2026-10-29 le rate a scadenza erano state rese solo promemoria insieme alle Spese programmate; l'utente ha deciso che per i Piani a scadenza vuole il comportamento opposto (uscita di cassa reale), mantenendo invece le Spese programmate come solo promemoria.
+
+## Cosa è stato fatto
+
+- `www/budget_calcoli.php`: nuova funzione `budget_totale_scadenza_pagate()`; il totale è sottratto nel `saldo` restituito da `budget_riepilogo_mese()`, usato sia da `budget_avanzo_mese()` (riporto al mese successivo) sia da `budget_sincronizza_imprevisti()` (prelievo "Imprevisti" dal Salvadanaio sullo sforamento).
+- `www/index.php`: rimossa la funzione locale duplicata `totale_rate_scadenza_pagate()`, sostituita con `budget_totale_scadenza_pagate()`; il totale rate pagate nel mese è sottratto da `$budget_restante_mese`; nel calcolo giorno per giorno le rate pagate da inizio mese a oggi sono sommate a `$spese_fino_a_oggi`, con lo stesso effetto di una spesa variabile dal giorno del pagamento; stessa correzione nel calcolo dell'avanzo alla creazione di un nuovo mese (`crea_mese`).
+- Nessuna modifica ai testi dell'interfaccia (card e popup di conferma): descrivevano già questo comportamento.
+- Nessuna modifica alle Spese programmate, né a `scadenze_spese_programmate`/`piani_spese_programmate`.
+
+## Decisioni dell'utente
+
+- Le rate dei Piani a scadenza devono scalare "Oggi puoi spendere" dal giorno in cui vengono spuntate PAGATA, comportandosi come un normale sforamento (in rosso, es. "-20 €") se si va oltre la spesa giornaliera.
+- Le Spese programmate restano invariate: solo promemoria, nessun effetto sul budget.
+
+## Verifiche
+
+- `php -l` nel container `web` su `budget_calcoli.php` e `index.php`.
+- `git diff --check` e `git diff` per ogni file, nessun file fuori obiettivo toccato.
+- Test nel browser dell'utente: riduzione di "Oggi puoi spendere" e di "Disponibilità rimasta" alla spunta PAGATO, sforamento in rosso se oltre la spesa giornaliera, importo di nuovo disponibile togliendo la spunta, nessuna regressione sulle Spese programmate.
+- Punto di ripristino: tag `checkpoint-pre-scadenza-scala-budget`, dump e archivio del 2026-11-18 in `~/backups/budget/`.

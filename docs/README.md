@@ -83,7 +83,7 @@ La tabella `spese_fisse` contiene la colonna facoltativa `link_documento` (`VARC
 - Il link viene validato in `www/index.php` dalla funzione `normalizza_link_documento()`: sono accettati solo URL `http`/`https` validi e lunghi al massimo 1000 caratteri; un valore vuoto rimuove il link.
 - Azioni in `www/index.php`: `add_fissa_nuova` (inserimento con link facoltativo) e `update_link_fissa` (aggiunta, modifica o rimozione del link su una voce esistente, con verifica di `utente_id` tramite join con `mesi`).
 - Nessuna integrazione API: viene salvato solo l'URL.
-- Per Paperless-ngx usare il link della pagina del documento (`http://<ip-pi>:8000/documents/<id>/details`), non quello dell'API (`/api/documents/<id>/...`), che richiede un token e restituisce `401 Unauthorized` nel browser.
+- Per Paperless-ngx usare il link della pagina del documento (`http://<ip-minipc>:8000/documents/<id>/details`), non quello dell'API (`/api/documents/<id>/...`), che richiede un token e restituisce `401 Unauthorized` nel browser.
 
 ---
 
@@ -109,7 +109,7 @@ Tutti i comandi devono essere eseguiti dalla directory del progetto e iniziare c
 
 `cd ~/budget &&`
 
-PHP non deve essere eseguito direttamente sul Raspberry Pi.
+PHP non deve essere eseguito direttamente sul Mini PC.
 
 Esempio corretto:
 
@@ -189,12 +189,12 @@ La funzione utilizza due tabelle dedicate, create dalla migrazione `009_create_s
 - `voci_spese_scadenza` (`utente_id`, `descrizione`, `numero_rate`), i piani di pagamento, associata direttamente all'utente con `ON DELETE CASCADE`; `numero_rate` (totale delle rate) è stato aggiunto dalla migrazione `010_piani_spese_scadenza.sql`;
 - `rate_spese_scadenza` (`voce_id`, `numero_rata`, `importo`, `data_scadenza`, `pagata`, `data_pagamento`, `link_documento`), associata alla voce con `ON DELETE CASCADE`.
 
-Tutto il codice è in `www/index.php`:
+Le azioni sono in `www/index.php`, il calcolo del saldo è centralizzato in `www/budget_calcoli.php`:
 
 - azioni: `add_piano_scadenza` (nome + numero di rate), `add_rata_scadenza` (numero, data, importo, link facoltativo, sotto un piano dell'utente), `update_piano_scadenza` (totale rate), `toggle_rata_scadenza` (PAGATO con data di pagamento = oggi, o rimozione), `update_link_rata_scadenza`, `update_rata_scadenza` (numero e piano sempre; importo e data solo se non pagata; il piano di destinazione deve appartenere all'utente), `delete_voce_scadenza`;
 - il vincolo univoco su (`voce_id`, `numero_rata`) è stato sostituito da un indice normale, perché il numero è scelto dall'utente e le rate possono essere spostate tra piani;
-- funzione `totale_rate_scadenza_pagate()`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
-- dal 2026-10-29 il totale non viene più sottratto dal budget: le rate sono solo promemoria (la funzione resta per la visualizzazione);
+- funzione `budget_totale_scadenza_pagate()` in `budget_calcoli.php`: somma le rate pagate nel mese (competenza = mese di `data_pagamento`);
+- dal 18-11-2026 il totale torna a essere sottratto dal saldo del mese (`budget_riepilogo_mese()`) e, nel mese corrente, dal budget giornaliero dal giorno del pagamento in avanti (`www/index.php`); le Spese programmate restano invece solo promemoria;
 - visualizzazione: sezione "Spese Fisse (NON considerate nel budget)" nella card Spese Fisse (rate in scadenza o pagate nel mese) e card "🗓️ Piani a scadenza (NON nel budget)" nella dashboard.
 - l'elenco "Gestisci piani e rate" è ordinato con i piani senza rate in alto, poi per prossima scadenza da pagare, infine i piani saldati; dentro ogni piano per data di scadenza;
 - la dashboard mostra "Rata N/Totale" con `COALESCE(numero_rate, numero di rate inserite)`;
@@ -217,10 +217,10 @@ Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scade
 
 # Backup del database
 
-- Script: `/home/lorenzo/budget-backup.sh`, fuori dal repository (riguarda il Raspberry, non il codice). Avviato da crontab ogni notte alle 03:30 (`30 3 * * *`), log in `~/backups/logs/`.
+- Script: `/home/lorenzo/budget-backup.sh`, fuori dal repository (riguarda il Mini PC, non il codice). Avviato da crontab ogni notte alle 03:30 (`30 3 * * *`), log in `~/backups/logs/`.
 - Contenuto dell'archivio: dump completo di `budget_db` (`--single-transaction --routines --triggers --events`), `.env`, `docker-compose.yml`, istruzioni di ripristino e checksum SHA256.
-- Destinazione: disco del router `root@192.168.2.1:/mnt/backup/backup_budget/` via SSH con chiave `~/.ssh/backup_key`; checksum verificato anche sul router; conservati gli ultimi 30 archivi (`REMOTE_KEEP=30`); sul Raspberry resta solo il log.
+- Destinazione: disco del router `root@192.168.2.1:/mnt/backup/backup_budget/` via SSH con chiave `~/.ssh/backup_key`; checksum verificato anche sul router; conservati gli ultimi 30 archivi (`REMOTE_KEEP=30`); sul Mini PC resta solo il log.
 - Esito: la funzione `registra_esito` dello script scrive in `backup_stato` una riga `ok` a fine backup oppure, tramite il trap `EXIT`, una riga `errore` con la fase (0-9) e l'ultima riga di errore del log; le righe più vecchie di 180 giorni vengono eliminate. `backup_stato` è una tabella di sistema senza `utente_id` perché non contiene dati finanziari.
-- Dashboard (`www/index.php`): avviso rosso se l'ultima riga è un errore, avviso giallo se non c'è un `ok` nelle ultime 48 ore (con l'ultimo avvio del Raspberry letto da `/proc/uptime`), altrimenti solo la riga in fondo alla pagina. Le query sono in un `try/catch`: se la tabella manca la dashboard funziona comunque.
+- Dashboard (`www/index.php`): avviso rosso se l'ultima riga è un errore, avviso giallo se non c'è un `ok` nelle ultime 48 ore (con l'ultimo avvio del Mini PC letto da `/proc/uptime`), altrimenti solo la riga in fondo alla pagina. Le query sono in un `try/catch`: se la tabella manca la dashboard funziona comunque.
 - Ripristino: istruzioni in `README_RIPRISTINO.md` dentro ogni archivio. Il ripristino è stato provato il 2026-10-24 caricando il dump in un container MariaDB temporaneo: tutte le tabelle coincidevano con il database attivo.
-- Prima di ogni modifica i punti di ripristino manuali vanno in `~/backups/budget/` con `umask 077` (file `600`), sullo stesso disco del Raspberry: non sostituiscono il backup sul router.
+- Prima di ogni modifica i punti di ripristino manuali vanno in `~/backups/budget/` con `umask 077` (file `600`), sullo stesso disco del Mini PC: non sostituiscono il backup sul router.

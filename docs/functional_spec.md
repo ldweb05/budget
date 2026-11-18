@@ -89,7 +89,7 @@ Il numero della rata viene proposto come successivo all'ultimo inserito ma è mo
 Regole:
 
 - una rata non pagata è visibile solo nel mese della propria scadenza e non viene scalata dal budget;
-- le rate sono solo promemoria e non vengono mai scalate dal budget, nemmeno quando l'utente spunta PAGATO (data di pagamento = giorno in cui viene spuntata);
+- dal 18-11-2026 una rata spuntata PAGATO scala il budget giornaliero e la disponibilità del mese, come una spesa variabile, a partire dal giorno del pagamento (data di pagamento = giorno in cui viene spuntata);
 - se viene pagata in un mese diverso dalla scadenza, compare anche nel mese del pagamento, come pagata;
 - togliendo la spunta l'importo torna disponibile;
 - importo e data sono modificabili solo sulle rate non pagate; numero della rata e piano di appartenenza sono sempre modificabili (una rata può essere spostata in un altro piano);
@@ -97,7 +97,7 @@ Regole:
 - ogni rata può essere collegata a un documento esterno (Paperless-ngx o Google Drive) tramite link, anche dopo il pagamento, con la stessa resa delle spese fisse (descrizione cliccabile in orangered);
 - l'eliminazione di un piano elimina tutte le sue rate;
 - nella card "Piani a scadenza" della dashboard i piani sono collassabili (chiusi di default, il browser ricorda quelli aperti), ordinati per prossima scadenza da pagare (piani senza rate in alto, saldati in fondo) e filtrabili con un campo di ricerca testuale (es. "F24", "Cedolare 2024");
-- non modificano il Salvadanaio e rispettano l'isolamento dei dati per utente.
+- non generano movimenti diretti sul Salvadanaio, ma uno sforamento causato da una rata pagata viene coperto dal prelievo "Imprevisti" come qualunque altro sforamento; rispettano l'isolamento dei dati per utente.
 
 ---
 
@@ -181,11 +181,11 @@ Se una giornata termina con uno sforamento:
 - non viene redistribuito sui giorni rimanenti;
 - si recupera con le quote dei giorni seguenti (es. quota 8 €: -4 €, poi 4 €, poi 12 €).
 
-Formula (da novembre 2026): budget giornaliero = quota giornaliera × giorno del mese − spese varie fino a oggi, con quota giornaliera = (entrata − Salvadanaio − spese fisse + avanzo del mese precedente) ÷ giorni del mese. Il Salvadanaio si calcola solo sull'entrata, non sull'avanzo. Esempio: entrata 670 €, 10%, spese fisse 78 €, avanzo 80 € → (670 − 67 − 78 + 80) ÷ 30 = 20,17 € al giorno.
+Formula (da novembre 2026): budget giornaliero = quota giornaliera × giorno del mese − spese varie fino a oggi − rate dei Piani a scadenza pagate fino a oggi, con quota giornaliera = (entrata − Salvadanaio − spese fisse + avanzo del mese precedente) ÷ giorni del mese. Il Salvadanaio si calcola solo sull'entrata, non sull'avanzo. Esempio: entrata 670 €, 10%, spese fisse 78 €, avanzo 80 € → (670 − 67 − 78 + 80) ÷ 30 = 20,17 € al giorno.
 
 Fino a ottobre 2026 l'avanzo del mese precedente si sommava interamente al primo giorno.
 
-Spese programmate e Spese fisse a scadenza non entrano nel calcolo.
+Le Spese programmate sono solo promemoria e non entrano nel calcolo; le rate dei Piani a scadenza, invece, scalano il saldo nel mese in cui vengono spuntate PAGATO (vedi sezione "Spese fisse a scadenza").
 
 L'avanzo del mese precedente è calcolato al momento (da novembre 2026): una correzione al mese precedente si riflette subito sul mese successivo. Se il mese precedente chiude in negativo l'avanzo è 0 e lo sforamento è coperto dal Salvadanaio.
 

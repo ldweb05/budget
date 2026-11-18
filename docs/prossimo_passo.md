@@ -20,7 +20,7 @@ Completato:
 - Spese programmate con piani e singole scadenze;
 - generazione automatica delle rate con frequenza in mesi;
 - inserimento manuale di scadenze non regolari;
-- Spese programmate e Spese fisse a scadenza solo come promemoria, escluse da ogni calcolo (2026-10-29);
+- Spese programmate solo come promemoria, escluse da ogni calcolo (2026-10-29);
 - pagamento della singola rata;
 - modifica di data e importo delle rate non pagate;
 - estinzione anticipata delle ultime rate residue;
@@ -35,6 +35,7 @@ Completato:
 - accesso remoto esclusivamente tramite tunnel WireGuard, HTTP sulla porta `8085`.
 - revisione dei calcoli (2026-10-29): avanzo spalmato sul mese da novembre, avanzo calcolato al momento, Imprevisti sempre uguali allo sforamento, mese nuovo con entrata 0, Statistiche allineate e filtrate per utente.
 - entrate extra (2026-10-29): dalla pagina Salvadanaio, quota al Salvadanaio e resto spalmato dal giorno di inserimento a fine mese.
+- Piani a scadenza: le rate pagate tornano a scalare il saldo del mese, il riporto dell'avanzo al mese successivo e il budget giornaliero dal giorno del pagamento, come una spesa variabile; Spese programmate confermate come solo promemoria (18-11-2026).
 
 ## Prossimo intervento
 
@@ -46,7 +47,7 @@ Completato:
 3. Creare un piano automatico mensile.
 4. Creare un piano manuale con scadenze irregolari.
 5. Verificare la visualizzazione delle rate del mese corrente.
-6. Verificare che le rate non modifichino il budget giornaliero.
+6. Verificare che le rate dei Piani a scadenza modifichino il budget giornaliero dal giorno del pagamento (dal 18-11-2026); le rate delle Spese programmate restano invece senza effetto.
 7. Segnare una rata come pagata.
 8. Modificare una rata non pagata.
 9. Estinguere anticipatamente le ultime rate residue.
@@ -83,7 +84,7 @@ PHP deve essere eseguito esclusivamente nel servizio Docker `web`.
 
 MariaDB deve essere utilizzato esclusivamente nel servizio Docker `db` tramite il client `mariadb`.
 
-Non utilizzare PHP o database installati sul Raspberry.
+Non utilizzare PHP o database installati sul Mini PC.
 
 ## Workflow operativo
 

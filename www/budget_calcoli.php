@@ -3,8 +3,10 @@
 //
 // Regole (docs/functional_spec.md):
 // - saldo del mese = entrata - Salvadanaio (% sulla sola entrata) - spese fisse
-//   + avanzo del mese precedente - spese varie;
-// - Spese programmate e Spese fisse a scadenza sono solo promemoria;
+//   + avanzo del mese precedente - spese varie - rate dei Piani a scadenza pagate nel mese;
+// - Spese programmate sono solo promemoria, non riducono il saldo;
+// - dal 18-11-2026 le rate dei Piani a scadenza, quando spuntate PAGATA, scalano
+//   il saldo nel mese del pagamento (uscita di cassa reale);
 // - da novembre 2026 l'avanzo del mese precedente è calcolato al momento
 //   (solo se positivo) e spalmato su tutto il mese; fino a ottobre 2026 resta
 //   quello salvato in mesi.avanzo_riportato e si somma al primo giorno;
@@ -41,6 +43,28 @@ function budget_dati_mese($conn, $utente_id, $nome, $anno) {
     return $dati ?: null;
 }
 
+// Totale delle rate dei Piani a scadenza pagate nel mese indicato (competenza = mese
+// del pagamento). Sono un'uscita di cassa reale: a differenza delle Spese programmate
+// (solo promemoria) riducono il saldo disponibile dal giorno in cui vengono spuntate PAGATA.
+function budget_totale_scadenza_pagate($conn, $utente_id, $nome, $anno) {
+    $numero_mese = intval(date('n', strtotime("1 $nome " . intval($anno))));
+    $stmt = $conn->prepare(
+        "SELECT COALESCE(SUM(r.importo), 0) AS totale
+         FROM rate_spese_scadenza r
+         INNER JOIN voci_spese_scadenza v ON v.id = r.voce_id
+         WHERE v.utente_id = ?
+           AND r.pagata = 1
+           AND YEAR(r.data_pagamento) = ?
+           AND MONTH(r.data_pagamento) = ?"
+    );
+    $anno_int = intval($anno);
+    $stmt->bind_param("iii", $utente_id, $anno_int, $numero_mese);
+    $stmt->execute();
+    $totale = floatval($stmt->get_result()->fetch_assoc()['totale'] ?? 0);
+    $stmt->close();
+    return $totale;
+}
+
 // Avanzo del mese precedente da usare nel mese indicato (sempre >= 0).
 function budget_avanzo_mese($conn, $utente_id, $nome, $anno, $profondita = 0) {
     if (!budget_avanzo_spalmato($nome, $anno)) {
@@ -75,6 +99,7 @@ function budget_riepilogo_mese($conn, $utente_id, $nome, $anno, $profondita = 0)
     $avanzo = budget_avanzo_mese($conn, $utente_id, $nome, $anno, $profondita);
     $extra = budget_extra_mese($conn, intval($dati['id']), floatval($dati['percentuale_risparmio']));
     $extra_netto = budget_totale_extra($extra);
+    $totale_scadenza_pagate = budget_totale_scadenza_pagate($conn, $utente_id, $nome, $anno);
     $budget_mese = $entrata - $quota_risparmio - $totale_fisse + $avanzo + $extra_netto;
     return [
         'mese_id' => intval($dati['id']),
@@ -84,8 +109,9 @@ function budget_riepilogo_mese($conn, $utente_id, $nome, $anno, $profondita = 0)
         'totale_variabili' => $totale_variabili,
         'avanzo' => $avanzo,
         'extra_netto' => $extra_netto,
+        'totale_scadenza_pagate' => $totale_scadenza_pagate,
         'budget_mese' => $budget_mese,
-        'saldo' => $budget_mese - $totale_variabili,
+        'saldo' => $budget_mese - $totale_variabili - $totale_scadenza_pagate,
     ];
 }
 
