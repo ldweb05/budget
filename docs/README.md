@@ -199,7 +199,8 @@ Le azioni sono in `www/index.php`, il calcolo del saldo è centralizzato in `www
 - l'elenco "Gestisci piani e rate" è ordinato con i piani senza rate in alto, poi per prossima scadenza da pagare, infine i piani saldati; dentro ogni piano per data di scadenza;
 - la dashboard mostra "Rata N/Totale" con `COALESCE(numero_rate, numero di rate inserite)`;
 - piani collassabili tramite la funzione JS `apriChiudiPiano()`; lo stato aperto è salvato in `localStorage` (`piani_aperti`) con try/catch, solo come comodità del browser;
-- filtro testuale lato client sul campo `#ricerca-piani` (tutte le parole devono comparire nel nome del piano, attributo `data-nome`).
+- filtro testuale lato client sul campo `#ricerca-piani` (tutte le parole devono comparire nel nome del piano, attributo `data-nome`);
+- dal 22-11-2026 la riga "Rata N/Totale · data · importo" diventa un link (stesso stile delle Spese Fisse: orangered, sottolineato a puntini, apre in nuova scheda) quando la rata ha un `link_documento`; senza link resta testo semplice.
 
 Ogni query verifica l'appartenenza dei dati all'utente tramite `voci_spese_scadenza.utente_id`. I link sono validati con `normalizza_link_documento()`.
 

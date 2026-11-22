@@ -476,3 +476,28 @@ Il workflow operativo deve essere eseguito esclusivamente all'interno di questo 
 - `git diff --check` e `git diff` per ogni file, nessun file fuori obiettivo toccato.
 - Test nel browser dell'utente: riduzione di "Oggi puoi spendere" e di "Disponibilità rimasta" alla spunta PAGATO, sforamento in rosso se oltre la spesa giornaliera, importo di nuovo disponibile togliendo la spunta, nessuna regressione sulle Spese programmate.
 - Punto di ripristino: tag `checkpoint-pre-scadenza-scala-budget`, dump e archivio del 2026-11-18 in `~/backups/budget/`.
+
+# 2026-11-22 — Piani a scadenza: generazione automatica delle rate e rata cliccabile
+
+## Problema
+
+- L'utente, creando un piano a scadenza con molte rate (es. 24, trimestrali), doveva inserirle una alla volta.
+- Inoltre, dopo aver collegato un link a una rata, la riga della rata nel pannello "Gestisci piani e rate" non era cliccabile: solo i pulsanti "Link"/"Modifica link" erano utilizzabili.
+
+## Cosa e' stato fatto
+
+- `www/index.php`: nuova funzione `aggiungi_mesi_sicuro()` (evita l'overflow di `strtotime` sui mesi corti) e nuova azione `genera_rate_scadenza`, che inserisce tutte le rate mancanti di un piano da una data di partenza, un importo fisso per rata e una periodicita (mensile, ogni 2/3/4/6 mesi, annuale), continuando dalla rata successiva all'ultima inserita.
+- Nuovo pulsante "Genera" nel pannello "Piani a scadenza", visibile solo quando il piano ha ancora rate da inserire.
+- La riga "Rata N/Totale · data · importo" diventa un link (stesso stile delle Spese Fisse: orangered, sottolineato a puntini, nuova scheda) quando la rata ha un `link_documento`; senza link resta testo semplice.
+
+## Decisioni dell'utente
+
+- La generazione automatica deve funzionare anche su piani parzialmente compilati, continuando dall'ultima rata inserita.
+- La rata con link deve comportarsi come le Spese Fisse: testo cliccabile, non solo pulsanti separati.
+
+## Verifiche
+
+- `php -l` nel container `web` su `index.php` per entrambe le modifiche.
+- `git diff --check` e `git diff`, nessun file fuori obiettivo toccato.
+- Test nel browser dell'utente: generazione corretta delle date (es. trimestrale da 22-11 a 22-02-2027 e cosi via) fino al totale rate del piano, pulsante "Genera" assente sui piani completi; rata con link cliccabile e apre in nuova scheda, rata senza link resta testo semplice, pulsanti "Link"/"Modifica link" e "Modifica" invariati.
+- Punti di ripristino: tag `checkpoint-pre-genera-rate` (commit `0a2ee3c`) e `checkpoint-pre-link-rata` (commit `f850458`), dump e archivi del 2026-11-22 in `~/backups/budget/`.
