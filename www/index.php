@@ -330,6 +330,21 @@ function data_scadenza_valida($valore) {
     return ($data && $data->format('Y-m-d') === $valore) ? $valore : false;
 }
 
+// Aggiunge $mesi mesi a $data_base (formato Y-m-d) senza l'overflow di strtotime
+// sui mesi corti (es. 31 gennaio + 1 mese NON deve diventare marzo): se il giorno
+// non esiste nel mese di destinazione, usa l'ultimo giorno disponibile.
+function aggiungi_mesi_sicuro($data_base, $mesi) {
+    $data = DateTimeImmutable::createFromFormat('Y-m-d', $data_base);
+    if (!$data) {
+        return false;
+    }
+    $giorno = (int) $data->format('j');
+    $primo_del_mese = $data->modify('first day of this month')->modify("+$mesi month");
+    $ultimo_giorno_mese = (int) $primo_del_mese->format('t');
+    $giorno_finale = min($giorno, $ultimo_giorno_mese);
+    return $primo_del_mese->modify('+' . ($giorno_finale - 1) . ' day')->format('Y-m-d');
+}
+
 // Azione: Crea un nuovo piano di pagamento (nome + numero di rate)
 if (isset($_POST['add_piano_scadenza'])) {
     $desc_piano = trim($_POST['descrizione_piano'] ?? '');
@@ -362,6 +377,50 @@ if (isset($_POST['add_rata_scadenza'])) {
         $stmt->bind_param("idssii", $numero_rata, $importo_rata, $data_rata, $link_documento, $id_piano, $utente_id);
         $stmt->execute();
         $stmt->close();
+    }
+    header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
+    exit;
+}
+
+// Azione: Genera automaticamente le rate mancanti di un piano (prima scadenza + periodicità)
+if (isset($_POST['genera_rate_scadenza'])) {
+    $id_piano = intval($_POST['id_piano'] ?? 0);
+    $data_prima_rata = data_scadenza_valida($_POST['data_prima_rata'] ?? '');
+    $importo_rata = round(floatval($_POST['importo_rata'] ?? 0), 2);
+    $frequenza_mesi = intval($_POST['frequenza_mesi'] ?? 0);
+    $frequenze_valide = [1, 2, 3, 4, 6, 12];
+
+    if ($id_piano > 0 && $data_prima_rata !== false && $importo_rata > 0 && in_array($frequenza_mesi, $frequenze_valide, true)) {
+        $piano_stmt = $conn->prepare(
+            "SELECT numero_rate,
+                    (SELECT COALESCE(MAX(r.numero_rata), 0) FROM rate_spese_scadenza r WHERE r.voce_id = voci_spese_scadenza.id) AS ultimo_numero
+             FROM voci_spese_scadenza WHERE id = ? AND utente_id = ?"
+        );
+        $piano_stmt->bind_param("ii", $id_piano, $utente_id);
+        $piano_stmt->execute();
+        $piano_info = $piano_stmt->get_result()->fetch_assoc();
+        $piano_stmt->close();
+
+        if ($piano_info && $piano_info['numero_rate'] !== null) {
+            $numero_rate_totali = intval($piano_info['numero_rate']);
+            $ultimo_numero = intval($piano_info['ultimo_numero']);
+            $data_rata_corrente = $data_prima_rata;
+
+            $insert_stmt = $conn->prepare(
+                "INSERT INTO rate_spese_scadenza (voce_id, numero_rata, importo, data_scadenza)
+                 SELECT id, ?, ?, ? FROM voci_spese_scadenza WHERE id = ? AND utente_id = ?"
+            );
+
+            for ($numero_rata = $ultimo_numero + 1; $numero_rata <= $numero_rate_totali; $numero_rata++) {
+                $insert_stmt->bind_param("idsii", $numero_rata, $importo_rata, $data_rata_corrente, $id_piano, $utente_id);
+                $insert_stmt->execute();
+                $data_rata_corrente = aggiungi_mesi_sicuro($data_rata_corrente, $frequenza_mesi);
+                if ($data_rata_corrente === false) {
+                    break;
+                }
+            }
+            $insert_stmt->close();
+        }
     }
     header("Location: index.php?mese=$mese_attivo&anno=$anno_attivo");
     exit;
@@ -1188,12 +1247,33 @@ $preferiti_query = $preferiti_stmt->get_result();
                                     </span>
                                 </span>
                                 <span class="flex items-center gap-3 shrink-0">
+                                    <?php if ($rs_totale > 0 && intval($rs_piano['ultimo_numero']) < $rs_totale): ?>
+                                    <button type="button" onclick="const g = this.closest('.gruppo-piano'); apriChiudiPiano(g, true); g.querySelector('.form-genera-rate').classList.toggle('hidden')" class="text-[#FF4500] font-bold hover:underline">&#9889; Genera</button>
+                                    <?php endif; ?>
                                     <button type="button" onclick="const g = this.closest('.gruppo-piano'); apriChiudiPiano(g, true); g.querySelector('.form-aggiungi-rata').classList.toggle('hidden')" class="text-[#008080] font-bold hover:underline">+ Rata</button>
                                     <button type="button" onclick="const g = this.closest('.gruppo-piano'); apriChiudiPiano(g, true); g.querySelector('.form-totale-piano').classList.toggle('hidden')" class="text-gray-600 font-bold hover:underline">N. rate</button>
                                     <a href="index.php?mese=<?php echo $mese_attivo; ?>&anno=<?php echo $anno_attivo; ?>&delete_voce_scadenza=<?php echo $rs_piano_id; ?>" onclick="return confirm('Vuoi eliminare questo piano e TUTTE le sue rate?')" class="text-red-500 font-bold hover:underline">Elimina</a>
                                 </span>
                             </div>
                             <div class="contenuto-piano hidden">
+                            <?php if ($rs_totale > 0 && intval($rs_piano['ultimo_numero']) < $rs_totale): ?>
+                            <form method="POST" class="form-genera-rate hidden mt-1.5 grid grid-cols-2 gap-2 bg-orange-50 p-2 rounded-lg">
+                                <input type="hidden" name="id_piano" value="<?php echo $rs_piano_id; ?>">
+                                <label class="col-span-2 flex items-center gap-1 text-[10px] text-gray-500">Prossima scadenza (rata <?php echo intval($rs_piano['ultimo_numero']) + 1; ?>/<?php echo $rs_totale; ?>)
+                                    <input type="date" name="data_prima_rata" required class="flex-1 min-w-0 px-2 py-1 border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </label>
+                                <input type="number" step="0.01" min="0.01" name="importo_rata" placeholder="&euro; importo per rata" required class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-white font-bold text-right focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select name="frequenza_mesi" aria-label="Periodicit&agrave;" class="min-w-0 px-2 py-1 border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="1">Mensile</option>
+                                    <option value="2">Ogni 2 mesi</option>
+                                    <option value="3" selected>Trimestrale</option>
+                                    <option value="4">Ogni 4 mesi</option>
+                                    <option value="6">Semestrale</option>
+                                    <option value="12">Annuale</option>
+                                </select>
+                                <button type="submit" name="genera_rate_scadenza" class="col-span-2 bg-[#FF4500] text-white text-xs font-semibold py-1.5 rounded-lg hover:opacity-90 transition">Genera rate mancanti</button>
+                            </form>
+                            <?php endif; ?>
                             <form method="POST" class="form-aggiungi-rata hidden mt-1.5 grid grid-cols-2 gap-2">
                                 <input type="hidden" name="id_piano" value="<?php echo $rs_piano_id; ?>">
                                 <label class="flex items-center gap-1 text-[10px] text-gray-500">N. rata
