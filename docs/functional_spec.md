@@ -82,7 +82,7 @@ Sono organizzate in piani di pagamento (es. "Rottamazione 2023", "F24 Cedolare s
 
 - nome del piano;
 - numero totale di rate previste;
-- le rate, aggiunte una alla volta sotto il piano, ciascuna con numero della rata, data di scadenza reale, importo e link facoltativo (nessun calcolo automatico delle date).
+- le rate, ciascuna con numero della rata, data di scadenza reale, importo e link facoltativo. Possono essere aggiunte una alla volta, oppure (dal 22-11-2026) generate automaticamente per tutte quelle mancanti indicando la prossima scadenza, l'importo per rata e la periodicita (mensile, ogni 2/3/4/6 mesi, annuale).
 
 Il numero della rata viene proposto come successivo all'ultimo inserito ma è modificabile (un piano già avviato può partire, per esempio, dalla rata 15). Le rate sono mostrate come "Rata N/Totale".
 

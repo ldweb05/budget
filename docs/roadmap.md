@@ -177,6 +177,7 @@ Le rate sono solo promemoria e non riducono il budget.
 - ✅ Voci con rate a date di scadenza reali, inserite manualmente.
 - ✅ Sezione "Spese Fisse (NON considerate nel budget)" nella dashboard, visibile nel mese della scadenza.
 - ✅ Importo scalato dal budget solo con PAGATO, nel mese del pagamento.
+- ✅ Generazione automatica delle rate mancanti di un piano (prossima scadenza + importo + periodicita mensile/2/3/4/6/12 mesi), completato il 2026-11-22.
 - ✅ Link documento per singola rata, anche dopo il pagamento.
 - ✅ Modifica di importo e data delle rate non pagate, eliminazione della voce.
 - ✅ Isolamento per utente; Spese programmate invariate.

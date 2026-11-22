@@ -36,6 +36,7 @@ Completato:
 - revisione dei calcoli (2026-10-29): avanzo spalmato sul mese da novembre, avanzo calcolato al momento, Imprevisti sempre uguali allo sforamento, mese nuovo con entrata 0, Statistiche allineate e filtrate per utente.
 - entrate extra (2026-10-29): dalla pagina Salvadanaio, quota al Salvadanaio e resto spalmato dal giorno di inserimento a fine mese.
 - Piani a scadenza: le rate pagate tornano a scalare il saldo del mese, il riporto dell'avanzo al mese successivo e il budget giornaliero dal giorno del pagamento, come una spesa variabile; Spese programmate confermate come solo promemoria (18-11-2026).
+- Piani a scadenza: pulsante "Genera" per creare automaticamente le rate mancanti di un piano, indicando la prossima scadenza, l'importo per rata e la periodicita (mensile, ogni 2/3/4/6 mesi, annuale) (22-11-2026).
 
 ## Prossimo intervento
 
