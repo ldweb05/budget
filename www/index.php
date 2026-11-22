@@ -1298,7 +1298,11 @@ $preferiti_query = $preferiti_stmt->get_result();
                             <div class="riga-rata-scadenza py-1.5 pl-2">
                                 <div class="flex justify-between items-center gap-2">
                                     <span class="<?php echo $rs_item_pagata ? 'text-gray-400' : 'text-gray-600'; ?>">
-                                        Rata <?php echo intval($rs_item['numero_rata']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€
+                                        <?php if (!empty($rs_item['link_documento'])): ?>
+                                            <a href="<?php echo htmlspecialchars($rs_item['link_documento'], ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="text-[#FF4500] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80">Rata <?php echo intval($rs_item['numero_rata']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€</a>
+                                        <?php else: ?>
+                                            Rata <?php echo intval($rs_item['numero_rata']); ?><?php echo $rs_totale > 0 ? '/' . $rs_totale : ''; ?> · <?php echo date('d/m/Y', strtotime($rs_item['data_scadenza'])); ?> · <?php echo number_format($rs_item['importo'], 2, ',', '.'); ?>€
+                                        <?php endif; ?>
                                         <?php if ($rs_item_pagata && !empty($rs_item['data_pagamento'])): ?>
                                             · pagata il <?php echo date('d/m/Y', strtotime($rs_item['data_pagamento'])); ?>
                                         <?php endif; ?>
